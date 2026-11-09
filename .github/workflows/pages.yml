@@ -1,0 +1,33 @@
+# Veröffentlicht den Ordner morgen/ als Website auf GitHub Pages.
+# Läuft bei jedem Push auf main oder von Hand (Actions → "Website veröffentlichen" → Run workflow).
+name: Website veröffentlichen
+
+on:
+  push:
+    branches: [main]
+    paths: ['morgen/**', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: morgen
+      - id: deployment
+        uses: actions/deploy-pages@v4

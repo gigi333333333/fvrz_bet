@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="de" data-palette="morgenroete">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14151F">
+  <title>Morgenplan</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <main>
+    <!-- WECKER -->
+    <section id="tab-wecker" class="tab active">
+      <header class="page-head">
+        <p class="eyebrow" id="today"></p>
+        <h1>Wecker</h1>
+      </header>
+
+      <div class="hero">
+        <div class="seg" data-key="mode">
+          <button data-v="leave">Aus dem Haus fix</button>
+          <button data-v="wake">Aufstehen fix</button>
+        </div>
+        <p class="hero-label"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg><span>Aufstehen</span></p>
+        <div class="hero-time" id="sumWake">--:--</div>
+        <input type="time" id="wakeTime" class="hero-time-input hidden" aria-label="Aufstehen">
+        <div class="hero-input">
+          <span class="hero-row-label"><svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg><span>Aus dem Haus</span></span>
+          <input type="time" id="leaveTime" aria-label="Aus dem Haus">
+          <strong id="sumLeave" class="leave-static hidden">--:--</strong>
+        </div>
+        <div class="timeline" id="timeline" aria-hidden="true"></div>
+        <p class="hero-meta"><span id="sumTotal">0 Min</span> Routine</p>
+        <button id="arm" class="btn primary block">Aktivieren</button>
+      </div>
+
+      <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Wecken</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
+      <div class="sec-body" id="sec-aufstehen"><div class="sec-inner">
+      <div class="presets" id="presets"></div>
+      <p class="preset-sum" id="presetSum"></p>
+
+      <div id="customBox" class="hidden">
+      <ul class="group" id="soundList"></ul>
+      <div class="group pad">
+        <p class="label">Lauter werden</p>
+        <p class="hint">Der Weckton startet ganz leise und wird über diese Zeit langsam lauter. So schreckst du nicht auf.</p>
+        <div class="seg" data-key="fadeSec" data-num>
+          <button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button>
+        </div>
+        <p class="label">Licht vorher</p>
+        <p class="hint">So viele Minuten vor dem Wecken wird der Bildschirm langsam warm und hell, wie ein Sonnenaufgang.</p>
+        <div class="seg" data-key="dawnMin" data-num>
+          <button data-v="0">Aus</button><button data-v="10">10</button><button data-v="20">20</button><button data-v="30">30 min</button>
+        </div>
+        <p class="label">Schlummern</p>
+        <p class="hint">Beim Wecken erscheint ein Knopf, der den Ton für diese Zeit pausiert. Die Minuten fehlen dann in der Routine.</p>
+        <div class="seg" data-key="snooze" data-num>
+          <button data-v="0">Aus</button><button data-v="5">5 min</button><button data-v="9">9 min</button>
+        </div>
+      </div>
+      </div>
+
+      <ul class="group">
+        <li class="row"><span>Routine danach starten</span><label class="switch"><input type="checkbox" id="autoRoutine"><i></i></label></li>
+      </ul>
+      </div></div>
+
+      <button class="sec-head" data-sec="bett" aria-expanded="true"><span class="sec-title">Ins Bett</span><span class="sec-peek" id="peek-bett"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
+      <div class="sec-body" id="sec-bett"><div class="sec-inner">
+      <div class="bubbles" id="bedtimes"></div>
+      </div></div>
+    </section>
+
+    <!-- ROUTINE -->
+    <section id="tab-routine" class="tab">
+      <header class="page-head">
+        <p class="eyebrow" id="routineMeta"></p>
+        <h1>Routine</h1>
+      </header>
+      <ul class="group steps" id="steps"></ul>
+      <button id="addStep" class="btn ghost block">+ Schritt</button>
+
+      <h2 class="group-title">Durchsagen</h2>
+      <ul class="group">
+        <li class="row"><span>Durchsagen</span><label class="switch"><input type="checkbox" id="speechOn"><i></i></label></li>
+        <li class="row"><span>Stimme</span><select id="voiceSel" class="pick" aria-label="Stimme"></select></li>
+        <li class="row col"><span>Tempo</span>
+          <div class="seg" data-key="rate" data-num>
+            <button data-v="0.85">Ruhig</button><button data-v="1">Normal</button><button data-v="1.15">Zügig</button>
+          </div>
+        </li>
+        <li class="row tap" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
+      </ul>
+
+      <h2 class="group-title">Eigene Stimme</h2>
+      <ul class="group" id="clips"></ul>
+      <p class="footnote" id="clipHint"></p>
+
+      <button id="startNow" class="btn primary block">Jetzt starten</button>
+    </section>
+
+    <!-- MEHR -->
+    <section id="tab-mehr" class="tab">
+      <header class="page-head"><h1>Mehr</h1></header>
+
+      <h2 class="group-title">Farben</h2>
+      <ul class="group" id="palettes"></ul>
+
+      <h2 class="group-title">Wissen</h2>
+      <div class="group">
+        <details><summary>Melodie statt Piepen</summary><p>Studien der RMIT University (McFarlane et al., 2020) zeigen: Melodische Wecktöne gehen mit weniger Schlaftrunkenheit einher als harte Pieptöne. Gut sind erkennbare, aufsteigende Melodien mit 100–120 Schlägen pro Minute.</p></details>
+        <details><summary>Langsam lauter</summary><p>Ein plötzlicher lauter Ton schreckt auf und treibt Puls und Stresshormone hoch. Der Ton startet darum leise und wird allmählich lauter.</p></details>
+        <details><summary>Licht vor dem Ton</summary><p>Licht bremst das Schlafhormon Melatonin. Ein langsam heller werdender Bildschirm kann das Aufwachen erleichtern. Danach hilft echtes Tageslicht am meisten.</p></details>
+        <details><summary>Schlummertaste</summary><p>Die Forschung ist nicht einig (Sundelin et al., 2023, fanden bei 30 Minuten keinen klaren Schaden). Der Schlaf danach ist aber zerstückelt und die Zeit fehlt in der Routine. Standard ist „aus“.</p></details>
+        <details><summary>Gleiche Zeit, jeden Tag</summary><p>Am meisten hilft eine regelmässige Aufstehzeit, auch am Wochenende (±1 Stunde). Jugendliche brauchen 8–10 Stunden Schlaf, Erwachsene 7–9.</p></details>
+      </div>
+      <p class="footnote">Nachts: App offen, Handy am Kabel, Ton laut.</p>
+    </section>
+  </main>
+
+  <nav class="tabbar" role="tablist">
+    <button data-tab="wecker" class="active" aria-label="Wecker">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg>
+    </button>
+    <button data-tab="routine" aria-label="Routine">
+      <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
+    </button>
+    <button data-tab="mehr" aria-label="Mehr">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
+    </button>
+  </nav>
+
+  <!-- Schritt bearbeiten -->
+  <dialog id="sheet" class="sheet">
+    <form method="dialog" id="sheetForm">
+      <div class="grabber"></div>
+      <h2 id="sheetTitle">Schritt</h2>
+      <input id="sheetName" placeholder="z. B. Duschen" maxlength="40" required>
+      <div class="stepper">
+        <button type="button" data-d="-1" aria-label="weniger">−</button>
+        <div><strong id="sheetMin">5</strong><span>Min</span></div>
+        <button type="button" data-d="1" aria-label="mehr">+</button>
+      </div>
+      <button type="button" class="btn danger block" id="sheetDel">Löschen</button>
+      <button class="btn primary block" value="save">Speichern</button>
+    </form>
+  </dialog>
+
+  <!-- Overlays -->
+  <div id="armedView" class="overlay hidden">
+    <div id="dawn" aria-hidden="true"></div>
+    <div class="armed-inner">
+      <div class="big-clock" id="armedClock">--:--</div>
+      <p>Aufstehen <strong id="armedWake">--:--</strong></p>
+      <p class="small" id="armedIn"></p>
+      <button id="disarm" class="btn ghost">Aus</button>
+    </div>
+  </div>
+
+  <div id="ringView" class="overlay ring hidden">
+    <div class="ring-inner">
+      <p class="hello">Guten Morgen</p>
+      <div class="big-clock" id="ringClock">--:--</div>
+      <p class="tip">☀️ 💧</p>
+      <button id="stopAlarm" class="btn dark block">Ich bin wach</button>
+      <button id="snoozeBtn" class="btn ghost block hidden">Schlummern</button>
+    </div>
+  </div>
+
+  <div id="runView" class="overlay run hidden">
+    <div class="run-inner">
+      <p class="eyebrow" id="runStepNo"></p>
+      <h2 id="runName"></h2>
+      <div class="ringwrap">
+        <svg viewBox="0 0 200 200" class="progress">
+          <circle cx="100" cy="100" r="88" class="track"/>
+          <circle cx="100" cy="100" r="88" class="bar" id="runBar"/>
+        </svg>
+        <div class="remaining" id="runRemaining">0:00</div>
+      </div>
+      <p id="runNext" class="next"></p>
+      <p id="runWarn" class="warn hidden">Bildschirm bleibt nicht von selbst an. Stell die automatische Sperre aus, sonst pausieren Timer und Durchsagen.</p>
+      <div class="leave-info">
+        <div><span>Aus dem Haus · Plan</span><strong id="runLeavePlan">--:--</strong></div>
+        <div><span>Aus dem Haus · jetzt</span><strong id="runLeaveEst">--:--</strong></div>
+      </div>
+      <div class="run-btns">
+        <button id="runPause" class="btn ghost round" aria-label="Pause">❚❚</button>
+        <button id="runDone" class="btn primary">Weiter ›</button>
+      </div>
+      <button id="runStop" class="btn link">Abbrechen</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
