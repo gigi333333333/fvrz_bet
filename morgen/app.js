@@ -22,7 +22,8 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, palette: 'morgenroete', preset: 'standard'
+  autoRoutine: true, speechOn: true, palette: 'morgenroete', preset: 'standard',
+  collapsed: {}
 };
 
 let steps = store.get('steps', DEFAULT_STEPS);
@@ -301,7 +302,25 @@ $('presets').addEventListener('click', e => {
   saveSettings();
 });
 
-function renderAll() { renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+/* ---------- Einklappbare Bereiche ---------- */
+function renderSections() {
+  document.querySelectorAll('.sec-head').forEach(h => {
+    const closed = !!settings.collapsed[h.dataset.sec];
+    h.classList.toggle('closed', closed);
+    h.setAttribute('aria-expanded', String(!closed));
+    $('sec-' + h.dataset.sec).classList.toggle('closed', closed);
+  });
+  const p = PRESETS.find(x => x.id === settings.preset);
+  $('peek-aufstehen').textContent = p ? p.icon + ' ' + p.name : '🎚️ Individuell';
+  $('peek-bett').textContent = fromMin(wakeMin() - 6 * 90 - 15);
+}
+document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', () => {
+  settings.collapsed = { ...settings.collapsed, [h.dataset.sec]: !settings.collapsed[h.dataset.sec] };
+  store.set('settings', settings);
+  renderSections();
+}));
+
+function renderAll() { renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {

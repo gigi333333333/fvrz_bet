@@ -204,3 +204,15 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
 .preset-sum:empty { display: none; }
 #customBox { margin-top: 12px; }
 #customBox .group { margin-bottom: 12px; }
+
+/* Einklappbare Bereiche */
+.sec-head { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: none; padding: 0 4px 0 8px; margin: 30px 0 10px; text-align: left; }
+.sec-title { font-size: 1.15rem; font-weight: 700; }
+.sec-peek { flex: 1; color: var(--muted); font-size: .88rem; opacity: 0; transition: opacity .2s; }
+.sec-head.closed .sec-peek { opacity: 1; }
+.chev-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--surface); display: grid; place-items: center; flex: none; }
+.chev-ico { width: 18px; height: 18px; fill: none; stroke: var(--text); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: transform .25s ease; }
+.sec-head.closed .chev-ico { transform: rotate(-90deg); }
+.sec-body { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .3s ease, opacity .25s; }
+.sec-body.closed { grid-template-rows: 0fr; opacity: 0; }
+.sec-inner { overflow: hidden; min-height: 0; }

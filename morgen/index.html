@@ -40,7 +40,8 @@
         <button id="arm" class="btn primary block">Aktivieren</button>
       </div>
 
-      <h2 class="group-title">Aufstehen</h2>
+      <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Aufstehen</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
+      <div class="sec-body" id="sec-aufstehen"><div class="sec-inner">
       <div class="presets" id="presets"></div>
       <p class="preset-sum" id="presetSum"></p>
 
@@ -65,9 +66,12 @@
       <ul class="group">
         <li class="row"><span>Routine danach starten</span><label class="switch"><input type="checkbox" id="autoRoutine"><i></i></label></li>
       </ul>
+      </div></div>
 
-      <h2 class="group-title">Ins Bett</h2>
+      <button class="sec-head" data-sec="bett" aria-expanded="true"><span class="sec-title">Ins Bett</span><span class="sec-peek" id="peek-bett"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
+      <div class="sec-body" id="sec-bett"><div class="sec-inner">
       <div class="bubbles" id="bedtimes"></div>
+      </div></div>
     </section>
 
     <!-- ROUTINE -->
