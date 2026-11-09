@@ -141,10 +141,11 @@
       <h2 class="group-title">Wetter</h2>
       <ul class="group">
         <li class="row"><span>Ort</span><strong id="wxPlace" class="muted-val">–</strong></li>
-        <li class="row col">
+        <li class="row"><span>Standort verwenden</span><label class="switch"><input type="checkbox" id="wxAuto"><i></i></label></li>
+        <!-- nur ohne Standort: Ort von Hand suchen -->
+        <li class="row col hidden" id="wxManual">
           <form id="wxSearch" class="wx-search"><input id="wxQuery" class="text-in" placeholder="Ort suchen, z. B. Zürich" autocomplete="off"><button class="btn primary">Suchen</button></form>
           <ul id="wxResults" class="wx-results"></ul>
-          <button type="button" class="btn ghost" id="wxGeo">📍 Aktuellen Standort verwenden</button>
         </li>
       </ul>
 
@@ -296,6 +297,7 @@
       <label class="onboard-q" for="onboardName">Wie heisst du?</label>
       <input id="onboardName" class="text-in big" maxlength="30" placeholder="Dein Name" autocomplete="given-name" required>
       <p class="footnote">Dein Name erscheint in der Begrüssung und in den Durchsagen.</p>
+      <p class="footnote">📍 Danach fragt die App nach deinem Standort, für das Wetter am Morgen.</p>
       <button class="btn primary block" id="onboardGo">Los geht's</button>
     </form>
   </div>
