@@ -35,7 +35,7 @@
           <input type="time" id="leaveTime" class="cover-input" aria-label="Aus dem Haus ändern">
         </div>
         <div class="timeline" id="timeline" aria-hidden="true"></div>
-        <p class="hero-meta"><span id="sumTotal">0 Min</span> Routine</p>
+        <p class="hero-meta" id="sumTotal"></p>
         <button id="arm" class="btn primary block">Aktivieren</button>
       </div>
 
@@ -82,7 +82,7 @@
         <p class="eyebrow" id="routineMeta"></p>
         <h1>Routine</h1>
       </header>
-      <ul class="group steps" id="steps"></ul>
+      <ul class="group steps" id="steps" data-noi18n></ul>
       <button id="addStep" class="btn ghost block">+ Schritt</button>
 
       <h2 class="group-title">Durchsagen</h2>
@@ -106,9 +106,26 @@
       <button id="startNow" class="btn primary block">Jetzt starten</button>
     </section>
 
-    <!-- MEHR -->
+    <!-- EINSTELLUNGEN -->
     <section id="tab-mehr" class="tab">
-      <header class="page-head"><h1>Mehr</h1></header>
+      <header class="page-head"><h1>Einstellungen</h1></header>
+
+      <h2 class="group-title">Profil</h2>
+      <ul class="group">
+        <li class="row"><span>Name</span><input id="nameInput" class="text-in" maxlength="30" placeholder="Dein Name" autocomplete="given-name"></li>
+      </ul>
+
+      <h2 class="group-title">Sprache</h2>
+      <div class="seg lang-seg" data-key="lang">
+        <button data-v="de">Deutsch</button><button data-v="en">English</button>
+      </div>
+
+      <h2 class="group-title">Konto</h2>
+      <ul class="group">
+        <li class="row disabled"><span>E-Mail</span><span class="badge">Bald</span></li>
+        <li class="row disabled"><span>Konto erstellen</span><span class="badge">Bald</span></li>
+      </ul>
+      <p class="footnote">Mit einem Konto kannst du später Routine und Einstellungen auf mehreren Geräten nutzen.</p>
 
       <h2 class="group-title">Farben</h2>
       <ul class="group" id="palettes"></ul>
@@ -132,8 +149,8 @@
     <button data-tab="routine" aria-label="Routine">
       <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
     </button>
-    <button data-tab="mehr" aria-label="Mehr">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
+    <button data-tab="mehr" aria-label="Einstellungen">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     </button>
   </nav>
 
@@ -166,7 +183,7 @@
 
   <div id="ringView" class="overlay ring hidden">
     <div class="ring-inner">
-      <p class="hello">Guten Morgen</p>
+      <p class="hello" id="hello">Guten Morgen</p>
       <div class="big-clock" id="ringClock">--:--</div>
       <p class="tip">☀️ 💧</p>
       <button id="stopAlarm" class="btn dark block">Ich bin wach</button>
@@ -177,7 +194,7 @@
   <div id="runView" class="overlay run hidden">
     <div class="run-inner">
       <p class="eyebrow" id="runStepNo"></p>
-      <h2 id="runName"></h2>
+      <h2 id="runName" data-noi18n></h2>
       <div class="ringwrap">
         <svg viewBox="0 0 200 200" class="progress">
           <circle cx="100" cy="100" r="88" class="track"/>
@@ -185,7 +202,7 @@
         </svg>
         <div class="remaining" id="runRemaining">0:00</div>
       </div>
-      <p id="runNext" class="next"></p>
+      <p id="runNext" class="next" data-noi18n></p>
       <p id="runWarn" class="warn hidden">Bildschirm bleibt nicht von selbst an. Stell die automatische Sperre aus, sonst pausieren Timer und Durchsagen.</p>
       <div class="leave-info">
         <div><span>Aus dem Haus · Plan</span><strong id="runLeavePlan">--:--</strong></div>
@@ -199,6 +216,22 @@
     </div>
   </div>
 
+  <!-- Willkommen: Sprache und Name beim ersten Start -->
+  <div id="onboard" class="overlay onboard hidden">
+    <form class="onboard-inner" id="onboardForm">
+      <div class="onboard-logo" aria-hidden="true">☀️</div>
+      <h1>Willkommen bei Routinely</h1>
+      <div class="seg lang-seg" data-key="lang">
+        <button type="button" data-v="de">Deutsch</button><button type="button" data-v="en">English</button>
+      </div>
+      <label class="onboard-q" for="onboardName">Wie heisst du?</label>
+      <input id="onboardName" class="text-in big" maxlength="30" placeholder="Dein Name" autocomplete="given-name" required>
+      <p class="footnote">Dein Name erscheint in der Begrüssung und in den Durchsagen.</p>
+      <button class="btn primary block" id="onboardGo">Los geht's</button>
+    </form>
+  </div>
+
+  <script src="i18n.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
