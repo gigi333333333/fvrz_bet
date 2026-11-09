@@ -30,7 +30,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, lang: '', name: '', voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
   collapsed: {}
 };
 
@@ -449,7 +449,7 @@ function renderSegs() {
 }
 
 // Felder & Schalter
-[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn']].forEach(([id, key]) => {
+[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn'], ['lockedIn', 'lockedIn']].forEach(([id, key]) => {
   const el = $(id);
   if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
   el.addEventListener('change', () => { settings[key] = el.type === 'checkbox' ? el.checked : el.value; saveSettings(); });
@@ -531,7 +531,7 @@ function renderSections() {
     $('sec-' + h.dataset.sec).classList.toggle('closed', closed);
   });
   const p = PRESETS.find(x => x.id === settings.preset);
-  $('peek-aufstehen').textContent = p ? p.icon + ' ' + t(p.name) : '🎚️ ' + t('Individuell');
+  $('peek-aufstehen').textContent = (settings.lockedIn ? '🔒 ' : '') + (p ? p.icon + ' ' + t(p.name) : '🎚️ ' + t('Individuell'));
   $('peek-bett').textContent = fromMin(wakeMin() - 6 * 90 - 15);
 }
 document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', () => {
@@ -677,6 +677,7 @@ function armAlarm() {
   lockScreen();
 }
 function disarm() {
+  stopLockedIn();
   alarm.armed = false; alarm.ringing = false;
   stopMelody(); stopKeepAlive(); unlockScreen();
   $('dawn').style.opacity = 0;
@@ -689,18 +690,114 @@ function ring() {
   $('armedView').classList.add('hidden');
   $('ringView').classList.remove('hidden');
   $('hello').textContent = settings.name ? t('Guten Morgen, {name}', { name: settings.name }) : t('Guten Morgen');
-  $('snoozeBtn').classList.toggle('hidden', !settings.snooze);
+  $('snoozeBtn').classList.toggle('hidden', !settings.snooze || settings.lockedIn);
+  $('stopAlarm').classList.toggle('hidden', settings.lockedIn);
+  $('pushBox').classList.toggle('hidden', !settings.lockedIn);
+  if (settings.lockedIn) startLockedIn();
   $('snoozeBtn').textContent = `+${settings.snooze} min`;
   playMelody(settings.sound, settings.fadeSec);
   if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
 }
 $('arm').addEventListener('click', armAlarm);
 $('disarm').addEventListener('click', disarm);
-$('stopAlarm').addEventListener('click', () => {
+function wakeDone(delay = 0) {
   const leave = alarm.plannedLeave;
   disarm();
-  if (settings.autoRoutine && steps.length) startRoutine(leave);
+  if (settings.autoRoutine && steps.length) setTimeout(() => startRoutine(leave), delay);
+}
+$('stopAlarm').addEventListener('click', () => wakeDone());
+
+/* ---------- Locked in: Liegestütze statt Aus-Knopf ---------- */
+const PUSHUPS = 15;
+// Eigene Sprüche im harten Drill-Stil (keine Original-Zitate)
+const LOCK_LINES = {
+  de: [
+    'Steh auf, verdammt! Niemand kommt, um dich zu retten.',
+    'Dein Bett ist kein Versteck. Raus da!',
+    'Du hast gesagt, du willst es. Dann beweis es, verdammt nochmal!',
+    'Bequemlichkeit macht dich weich. Runter auf den Boden!',
+    'Scheiss auf Ausreden. Fünfzehn Liegestütze. Jetzt!',
+    'Während du pennst, wird jemand anderes besser. Beweg deinen Arsch!',
+    'Dein Kopf will aufgeben. Dein Kopf hat hier nichts zu melden.',
+    'Hör auf zu jammern und fang an zu leiden. Los!',
+    'Das ist kein Vorschlag. Das ist ein verdammter Befehl!'
+  ],
+  en: [
+    'Get up, damn it! Nobody is coming to save you.',
+    'Your bed is not a hiding place. Get out!',
+    'You said you wanted this. Now prove it, damn it!',
+    'Comfort makes you soft. Hit the floor!',
+    'Screw your excuses. Fifteen push-ups. Now!',
+    'While you sleep, someone else gets better. Move your ass!',
+    'Your mind wants to quit. Your mind does not get a vote.',
+    'Stop whining and start suffering. Go!',
+    'This is not a suggestion. This is a damn order!'
+  ]
+};
+const LOCK_REP = {
+  de: { 5: 'Das ist erst der Anfang!', 10: 'Nicht aufhören, verdammt! Noch fünf!', 14: 'Einer noch! Gib alles!' },
+  en: { 5: 'That is just the warm-up!', 10: "Don't you dare stop! Five more!", 14: 'One more! Everything you got!' }
+};
+const LOCK_DONE = {
+  de: n => `Das war's. ${n ? n + ', d' : 'D'}en Tag hast du dir verdient. Jetzt zieh durch.`,
+  en: n => `That's it. ${n ? n + ', y' : 'Y'}ou earned this day. Now go get it.`
+};
+let lock = null;
+function duck(level = 0.25, ms = 3500) {
+  if (!ctx || !master) return;
+  const now = ctx.currentTime;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setTargetAtTime(level, now, 0.08);
+  clearTimeout(lock && lock.unduck);
+  if (lock) lock.unduck = setTimeout(() => { if (alarm.ringing) master.gain.setTargetAtTime(lock && lock.count ? 0.45 : 1, ctx.currentTime, 0.3); }, ms);
+}
+function lockSay(text, ms) { duck(0.2, ms || 3500); speak(text, 0); }
+function startLockedIn() {
+  lock = { count: 0, last: 0, lastRep: 0, i: Math.floor(Math.random() * 9) };
+  $('pushCount').textContent = '0';
+  $('pushOf').textContent = '/ ' + PUSHUPS;
+  setTimeout(() => lockSay(LOCK_LINES[LANG][lock.i++ % 9]), 6000);
+  lock.talk = setInterval(() => {
+    // Nur anschreien, wenn gerade keine Liegestütze kommen
+    if (Date.now() - lock.lastRep > 7000) lockSay(LOCK_LINES[LANG][lock.i++ % 9]);
+  }, 11000);
+}
+function stopLockedIn() {
+  if (!lock) return;
+  clearInterval(lock.talk); clearTimeout(lock.unduck);
+  lock = null;
+}
+$('pushPad').addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!lock) return;
+  const now = Date.now();
+  if (now - lock.lastRep < 700) return;          // zu schnell: zählt nicht
+  lock.lastRep = now;
+  lock.count++;
+  $('pushCount').textContent = lock.count;
+  $('pushPad').classList.remove('hit'); void $('pushPad').offsetWidth; $('pushPad').classList.add('hit');
+  if (navigator.vibrate) navigator.vibrate(40);
+  if (lock.count >= PUSHUPS) {
+    const name = settings.name;
+    stopLockedIn();
+    stopMelody();
+    speak(LOCK_DONE[LANG](name), 0);
+    wakeDone(5000);   // Routine erst nach dem Abschluss-Spruch starten
+    return;
+  }
+  const extra = LOCK_REP[LANG][lock.count];
+  lockSay(extra ? `${lock.count}! ${extra}` : String(lock.count), extra ? 3000 : 1200);
 });
+// Notfall-Aus: 5 Sekunden gedrückt halten
+let emergencyTimer = null;
+$('pushEmergency').addEventListener('pointerdown', () => {
+  $('pushEmergency').textContent = t('Halten …');
+  emergencyTimer = setTimeout(() => { stopLockedIn(); wakeDone(); }, 5000);
+});
+['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('pushEmergency').addEventListener(ev, () => {
+  clearTimeout(emergencyTimer);
+  $('pushEmergency').textContent = t('Notfall: 5 Sekunden gedrückt halten');
+}));
 $('snoozeBtn').addEventListener('click', () => {
   stopMelody();
   alarm.ringing = false;

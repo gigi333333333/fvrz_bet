@@ -297,3 +297,14 @@ body.speech-off .speech-opt { display: none !important; }
 .onboard-inner h1 { font-size: 1.9rem; letter-spacing: -.02em; margin: 0 0 6px; }
 .onboard-q { font-weight: 700; font-size: 1.15rem; margin-top: 14px; }
 .text-in.big { width: 100%; text-align: center; font-size: 1.3rem; padding: 16px 20px; background: var(--surface); }
+
+/* Locked in */
+.lock-row .sub { max-width: 260px; }
+.push-box { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-top: 4px; }
+.push-pad { width: min(64vw, 240px); aspect-ratio: 1; border-radius: 50%; border: 0; background: #1B120A; color: #FFE8D2; display: flex; flex-direction: column; align-items: center; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; box-shadow: 0 12px 40px rgba(0,0,0,.35); }
+.push-pad strong { font-size: 5rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.push-pad span { font-size: 1.1rem; opacity: .7; }
+.push-pad.hit { animation: hit .25s ease; }
+@keyframes hit { 40% { transform: scale(.92); background: #3a2414; } }
+.push-hint { margin: 0; font-size: .9rem; max-width: 300px; color: #2a1408; }
+#pushEmergency { color: #2a1408; opacity: .7; font-size: .85rem; user-select: none; -webkit-user-select: none; }
