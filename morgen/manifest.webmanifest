@@ -1,6 +1,6 @@
 {
-  "name": "Morgenplan – Wecker & Routine",
-  "short_name": "Morgenplan",
+  "name": "Routinely – Wecker & Morgenroutine",
+  "short_name": "Routinely",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#14110f",
