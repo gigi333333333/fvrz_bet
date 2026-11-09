@@ -496,7 +496,7 @@ function renderSummary() {
   $('timeline').innerHTML = steps.map(s => `<i style="flex:${s.min}"></i>`).join('');
   const w = wakeMin();
   $('bedtimes').innerHTML = SLEEP_GOALS.map(h =>
-    `<button type="button" class="bubble ${settings.sleepGoal === h ? 'rec' : ''}" data-h="${h}"><strong>${fromMin(w - h * 60 - 15)}</strong><span>${fmtHours(h)}</span></button>`).join('');
+    `<button type="button" class="bubble ${settings.sleepGoal === h ? 'rec' : ''}" data-h="${h}"><strong>${fromMin(w - h * 60)}</strong><span>${fmtHours(h)}</span></button>`).join('');
   renderStreak();
   renderWeather();
   const d = new Date();
@@ -545,7 +545,7 @@ function renderSections() {
   });
   const p = PRESETS.find(x => x.id === settings.preset);
   $('peek-aufstehen').textContent = (settings.lockedIn ? '🔒 ' : '') + (p ? p.icon + ' ' + t(p.name) : '🎚️ ' + t('Individuell'));
-  $('peek-bett').textContent = fromMin(wakeMin() - settings.sleepGoal * 60 - 15) + ' · ' + fmtHours(settings.sleepGoal);
+  $('peek-bett').textContent = fromMin(wakeMin() - settings.sleepGoal * 60) + ' · ' + fmtHours(settings.sleepGoal);
 }
 document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', () => {
   settings.collapsed = { ...settings.collapsed, [h.dataset.sec]: !settings.collapsed[h.dataset.sec] };
@@ -642,14 +642,14 @@ $('bedRemind').addEventListener('change', () => {
 function nextBedtime(now) {
   // Schlafenszeit vor dem nächsten Aufstehen
   const wake = alarm.armed ? new Date(alarm.target) : nextOccurrence(((wakeMin() % 1440) + 1440) % 1440);
-  return wake.getTime() - (settings.sleepGoal * 60 + 15) * 60000;
+  return wake.getTime() - settings.sleepGoal * 3600000;
 }
 let bedNoted = store.get('bedNoted', '');
 function tickBedtime(now) {
   if (!settings.bedRemind || alarm.ringing || run) return;
   const bed = nextBedtime(now), bedStr = fmtClock(new Date(bed));
   const h = fmtHours(settings.sleepGoal);
-  const wakeStr = fmtClock(new Date(bed + (settings.sleepGoal * 60 + 15) * 60000));
+  const wakeStr = fmtClock(new Date(bed + settings.sleepGoal * 3600000));
   const note = (key, text) => {
     if (bedNoted === key) return;
     bedNoted = key; store.set('bedNoted', key);
