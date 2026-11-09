@@ -70,9 +70,38 @@ function audio() {
     master.gain.value = 0;
     master.connect(ctx.destination);
   }
-  if (ctx.state === 'suspended') ctx.resume();
+  if (ctx.state !== 'running') ctx.resume().catch(() => {});
   return ctx;
 }
+
+/* iOS & Co.: Ton und Sprache beim ersten Antippen freischalten.
+   Ohne das bleiben spätere Durchsagen stumm, und der Lautlos-Schalter würde Web-Audio stummschalten. */
+const SILENT_WAV = (() => {
+  const n = 800, buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+  const w = (o, str) => [...str].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 16000, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, n * 2, true);
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+})();
+const clipEl = new Audio();       // ein gemeinsames Audio-Element für eigene Aufnahmen
+clipEl.setAttribute('playsinline', '');
+let unlocked = false;
+function unlockAudio() {
+  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* nur neuere Safari */ }
+  audio();
+  if (unlocked) return;
+  unlocked = true;
+  clipEl.src = SILENT_WAV;
+  clipEl.play().catch(() => { unlocked = false; });
+  if ('speechSynthesis' in window) {
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0;
+    speechSynthesis.speak(u);
+  }
+}
+['touchend', 'click'].forEach(ev => document.addEventListener(ev, unlockAudio, true));
 // Ein unhörbarer Ton verhindert, dass der Browser den Audio-Kontext schlafen legt.
 function startKeepAlive() {
   audio();
@@ -192,16 +221,23 @@ function say(text) {
   chime();
   speak(text);
 }
-function speak(text) {
+function speak(text, delay = 450) {
   if (!('speechSynthesis' in window)) return;
-  setTimeout(() => {
-    speechSynthesis.cancel();
+  const go = () => {
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = voice ? voice.lang : 'de-DE';
     try { if (voice) u.voice = voice; } catch { /* Stimme nicht verfügbar: Standardstimme */ }
     u.rate = settings.rate || 1; u.volume = 1;
     speechSynthesis.speak(u);
-  }, 450);
+  };
+  // Direkt nach einem Antippen ohne Verzögerung sprechen (iOS verlangt das)
+  if (delay) setTimeout(go, delay); else go();
+}
+// Für Test-Knöpfe: sofort sprechen, noch innerhalb des Antippens
+function sayNow(text) {
+  if (!('speechSynthesis' in window)) { alert('Dieser Browser unterstützt keine Sprachausgabe.'); return; }
+  speak(text, 0);
 }
 // Eigene Aufnahme abspielen, sonst Computerstimme
 function announce(kind, text) {
@@ -250,6 +286,8 @@ async function loadClips() {
   renderClips();
 }
 async function saveClip(id, blob) {
+  if (clips[id] && clips[id].url) URL.revokeObjectURL(clips[id].url);
+  delete clipErr[id];
   clips[id] = { blob };
   await clipStore.set(id, blob);
   renderClips();
@@ -259,16 +297,34 @@ async function deleteClip(id) {
   await clipStore.del(id);
   renderClips();
 }
+const clipErr = {};
 async function playClip(id, delay = 0) {
   const c = clips[id]; if (!c) return false;
-  audio();
-  try { if (!c.buf) c.buf = await ctx.decodeAudioData(await c.blob.arrayBuffer()); }
-  catch { return false; }
-  const src = ctx.createBufferSource();
-  src.buffer = c.buf;
-  src.connect(ctx.destination);
-  src.start(ctx.currentTime + delay);
-  return true;
+  if (!c.url) c.url = URL.createObjectURL(c.blob);
+  if (delay) await new Promise(r => setTimeout(r, delay * 1000));
+  // 1. Versuch: Audio-Element (spielt auch bei Lautlos-Schalter, versteht m4a/mp4/webm)
+  try {
+    clipEl.src = c.url;
+    clipEl.currentTime = 0;
+    await clipEl.play();
+    delete clipErr[id];
+    return true;
+  } catch { /* weiter mit Web-Audio */ }
+  // 2. Versuch: Web-Audio
+  try {
+    audio();
+    if (!c.buf) c.buf = await ctx.decodeAudioData(await c.blob.arrayBuffer());
+    const src = ctx.createBufferSource();
+    src.buffer = c.buf;
+    src.connect(ctx.destination);
+    src.start();
+    delete clipErr[id];
+    return true;
+  } catch {
+    clipErr[id] = true;
+    renderClips();
+    return false;
+  }
 }
 async function startRec(id) {
   let stream;
@@ -301,11 +357,11 @@ function renderClips() {
   const list = document.getElementById('clips'); if (!list) return;
   list.innerHTML = CLIP_DEFS.map(d => {
     const has = !!clips[d.id], recording = rec && rec.id === d.id;
-    const status = recording ? `Aufnahme läuft · ${Math.floor((Date.now() - rec.t0) / 1000)} s` : has ? 'Eigene Aufnahme' : 'Computerstimme';
+    const status = recording ? `Aufnahme läuft · ${Math.floor((Date.now() - rec.t0) / 1000)} s` : clipErr[d.id] ? 'Kann nicht abgespielt werden' : has ? 'Eigene Aufnahme' : 'Computerstimme';
     const main = micFailed
       ? `<label class="ibtn" aria-label="Audiodatei wählen">${ICON.file}<input type="file" accept="audio/*" data-file="${d.id}" hidden></label>`
       : `<button class="ibtn ${recording ? 'rec' : ''}" data-rec="${d.id}" aria-label="${recording ? 'Stopp' : 'Aufnehmen'}">${recording ? ICON.stop : ICON.mic}</button>`;
-    return `<li class="row clip ${has ? 'has' : ''}">
+    return `<li class="row clip ${has ? 'has' : ''} ${clipErr[d.id] ? 'err' : ''}">
       <span class="grow">${d.name}<span class="sub">${status}</span></span>
       ${has && !recording ? `<button class="ibtn ghost" data-del="${d.id}" aria-label="Löschen">${ICON.del}</button><button class="ibtn ghost" data-play="${d.id}" aria-label="Anhören">${ICON.play}</button>` : ''}
       ${main}</li>`;
@@ -318,7 +374,7 @@ function renderClips() {
 document.addEventListener('click', e => {
   const b = e.target.closest('#clips [data-rec], #clips [data-play], #clips [data-del]'); if (!b) return;
   if (b.dataset.rec) { if (rec) stopRec(); else startRec(b.dataset.rec); }
-  else if (b.dataset.play) { chime(); playClip(b.dataset.play, 0.45); }
+  else if (b.dataset.play) playClip(b.dataset.play);
   else if (b.dataset.del && confirm('Aufnahme löschen?')) deleteClip(b.dataset.del);
 });
 document.addEventListener('change', e => {
@@ -466,7 +522,7 @@ document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', 
 }));
 
 /* ---------- Stimme ---------- */
-function sampleVoice() { say('Halbzeit: Duschen. Noch zwei Minuten und dreissig Sekunden.'); }
+function sampleVoice() { sayNow('Halbzeit: Duschen. Noch zwei Minuten und dreissig Sekunden.'); }
 $('voiceSel').addEventListener('change', e => {
   settings.voiceURI = e.target.value;
   store.set('settings', settings);
@@ -485,7 +541,7 @@ document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('cli
 
 $('testSpeech').addEventListener('click', () => {
   const s = steps[1] || steps[0];
-  say(s ? `Halbzeit: ${s.name}. Noch ${spokenDuration(s.min * 30)}.` : 'Test');
+  sayNow(s ? `Halbzeit: ${s.name}. Noch ${spokenDuration(s.min * 30)}.` : 'Test');
 });
 
 /* ---------- UI: Routine bearbeiten ---------- */
