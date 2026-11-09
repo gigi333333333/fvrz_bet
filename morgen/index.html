@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14110f">
+  <title>Morgenplan</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="dawn" aria-hidden="true"></div>
+
+  <header class="top">
+    <h1>Morgenplan</h1>
+    <div id="clock" class="clock">--:--</div>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="wecker" class="active">Wecker</button>
+    <button role="tab" data-tab="routine">Routine</button>
+    <button role="tab" data-tab="wissen">Wissen</button>
+  </nav>
+
+  <main>
+    <!-- WECKER -->
+    <section id="tab-wecker" class="tab active">
+      <div class="card">
+        <label class="seg">
+          <span>Ich plane nach</span>
+          <select id="mode">
+            <option value="leave">Aus-dem-Haus-Zeit</option>
+            <option value="wake">fixer Weckzeit</option>
+          </select>
+        </label>
+
+        <div id="leaveRow" class="row">
+          <label for="leaveTime">Aus dem Haus um</label>
+          <input type="time" id="leaveTime" value="07:15">
+        </div>
+        <div id="wakeRow" class="row hidden">
+          <label for="wakeTime">Wecken um</label>
+          <input type="time" id="wakeTime" value="06:30">
+        </div>
+
+        <div class="summary">
+          <div><span class="muted">Wecker</span><strong id="sumWake">--:--</strong></div>
+          <div><span class="muted">Routine</span><strong id="sumTotal">0 Min</strong></div>
+          <div><span class="muted">Aus dem Haus</span><strong id="sumLeave">--:--</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Weckton</h2>
+        <div class="row">
+          <label for="sound">Melodie</label>
+          <select id="sound">
+            <option value="sunrise">Sonnenaufgang (Marimba, aufsteigend)</option>
+            <option value="birds">Morgenglocken (hell, ruhig)</option>
+            <option value="pulse">Sanfter Puls (rhythmisch)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="fadeSec">Lauter werden über</label>
+          <select id="fadeSec">
+            <option value="30">30 Sek.</option>
+            <option value="60" selected>60 Sek.</option>
+            <option value="120">2 Min.</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="dawnMin">Licht-Sonnenaufgang vorher</label>
+          <select id="dawnMin">
+            <option value="0">aus</option>
+            <option value="10" selected>10 Min.</option>
+            <option value="20">20 Min.</option>
+            <option value="30">30 Min.</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="snooze">Schlummertaste</label>
+          <select id="snooze">
+            <option value="0" selected>aus (empfohlen)</option>
+            <option value="5">5 Min.</option>
+            <option value="9">9 Min.</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="autoRoutine">Routine nach Aufwachen automatisch starten</label>
+          <input type="checkbox" id="autoRoutine" checked>
+        </div>
+        <button id="preview" class="btn ghost">Weckton testen (5 Sek.)</button>
+      </div>
+
+      <div class="card">
+        <h2>Wann ins Bett?</h2>
+        <p class="muted small">Schlaf läuft in Zyklen von etwa 90 Minuten. Wer am Ende eines Zyklus aufwacht, fühlt sich meist frischer. Gerechnet ist mit 15 Minuten zum Einschlafen.</p>
+        <div id="bedtimes" class="chips"></div>
+      </div>
+
+      <button id="arm" class="btn primary big">Wecker scharf schalten</button>
+      <p class="muted small center">Die App muss geöffnet bleiben, das Handy am Ladekabel und der Ton laut. Den Bildschirm hält die App wach und dunkel.</p>
+    </section>
+
+    <!-- ROUTINE -->
+    <section id="tab-routine" class="tab">
+      <div class="card">
+        <h2>Meine Morgenroutine</h2>
+        <ol id="steps" class="steps"></ol>
+        <form id="addForm" class="add">
+          <input id="newName" placeholder="z. B. Duschen" required maxlength="40">
+          <input id="newMin" type="number" min="1" max="120" value="5" required aria-label="Minuten">
+          <button class="btn">+</button>
+        </form>
+        <div class="row">
+          <label for="speechOn">Sprachdurchsagen</label>
+          <input type="checkbox" id="speechOn" checked>
+        </div>
+        <button id="testSpeech" class="btn ghost">Durchsage testen</button>
+      </div>
+      <button id="startNow" class="btn primary big">Routine jetzt starten</button>
+    </section>
+
+    <!-- WISSEN -->
+    <section id="tab-wissen" class="tab">
+      <div class="card prose">
+        <h2>Worauf der Wecker setzt</h2>
+        <h3>Melodie statt Piepen</h3>
+        <p>Studien der RMIT University (McFarlane et al., 2020, PLOS ONE) zeigen: Wer mit einem melodischen Ton geweckt wird, berichtet weniger Schlaftrunkenheit als mit einem harten Piepton. Am besten wirken Töne mit erkennbarer, aufsteigender Melodie in mittlerem Tempo. Deshalb sind alle Wecktöne hier Melodien mit etwa 100–120 Schlägen pro Minute.</p>
+        <h3>Langsam lauter</h3>
+        <p>Ein plötzlicher lauter Ton schreckt auf und treibt Puls und Stresshormone hoch. Der Ton startet darum leise und wird über die gewählte Zeit lauter.</p>
+        <h3>Licht vor dem Ton</h3>
+        <p>Licht bremst das Schlafhormon Melatonin. Ein langsam heller werdender Bildschirm (Sonnenaufgang-Simulation) kann das Aufwachen erleichtern. Nach dem Aufstehen hilft echtes Tageslicht oder helles Zimmerlicht am meisten.</p>
+        <h3>Schlummertaste</h3>
+        <p>Die Forschung ist nicht ganz einig: Sundelin et al. (2023) fanden bei 30 Minuten Schlummern keinen klaren Schaden. Trotzdem ist der Schlaf danach zerstückelt und die Zeit fehlt in der Routine. Standard ist darum „aus“.</p>
+        <h3>Gleiche Zeit, jeden Tag</h3>
+        <p>Am meisten hilft eine regelmässige Aufstehzeit, auch am Wochenende (±1 Stunde). Jugendliche brauchen 8–10 Stunden Schlaf, Erwachsene 7–9.</p>
+        <h3>Die Routine</h3>
+        <p>Feste Zeitblöcke nehmen Entscheidungen ab und machen den Zeitbedarf sichtbar. Die Durchsagen zur Halbzeit und eine Minute vor Schluss helfen, nicht zu trödeln.</p>
+      </div>
+    </section>
+  </main>
+
+  <!-- Overlays -->
+  <div id="armedView" class="overlay hidden">
+    <div class="armed-inner">
+      <div class="big-clock" id="armedClock">--:--</div>
+      <p>Wecker um <strong id="armedWake">--:--</strong></p>
+      <p class="muted small" id="armedIn"></p>
+      <button id="disarm" class="btn ghost">Wecker ausschalten</button>
+    </div>
+  </div>
+
+  <div id="ringView" class="overlay ring hidden">
+    <div class="ring-inner">
+      <p class="hello">Guten Morgen</p>
+      <div class="big-clock" id="ringClock">--:--</div>
+      <p class="tip">Licht an, aufstehen, ein Glas Wasser.</p>
+      <button id="stopAlarm" class="btn primary big">Ich bin wach</button>
+      <button id="snoozeBtn" class="btn ghost hidden">Schlummern</button>
+    </div>
+  </div>
+
+  <div id="runView" class="overlay run hidden">
+    <div class="run-inner">
+      <p class="muted" id="runStepNo"></p>
+      <h2 id="runName"></h2>
+      <div class="ringwrap">
+        <svg viewBox="0 0 200 200" class="progress">
+          <circle cx="100" cy="100" r="88" class="track"/>
+          <circle cx="100" cy="100" r="88" class="bar" id="runBar"/>
+        </svg>
+        <div class="remaining" id="runRemaining">0:00</div>
+      </div>
+      <p id="runNext" class="muted"></p>
+      <div class="leave-info">
+        <div><span class="muted">Aus dem Haus geplant</span><strong id="runLeavePlan">--:--</strong></div>
+        <div><span class="muted">Voraussichtlich</span><strong id="runLeaveEst">--:--</strong></div>
+      </div>
+      <div class="run-btns">
+        <button id="runPause" class="btn ghost">Pause</button>
+        <button id="runDone" class="btn primary">Fertig – weiter</button>
+      </div>
+      <button id="runStop" class="btn link">Routine abbrechen</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
