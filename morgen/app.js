@@ -563,8 +563,17 @@ function renderMode() {
   $('modeHint').classList.toggle('show', on);
   document.querySelector('.hero').classList.toggle('locked', on);
 }
-function setLocked(on) {
+function setLocked(on, confirmed = false) {
   if (!!settings.lockedIn === on) { renderMode(); return; }
+  // Vor dem Einschalten erst bestätigen lassen
+  if (on && !confirmed) {
+    renderMode();                       // Regler bleibt vorerst auf Normal
+    const d = $('lockDialog');
+    d.returnValue = '';
+    d.showModal();
+    d.addEventListener('close', () => { if (d.returnValue === 'ok') setLocked(true, true); }, { once: true });
+    return;
+  }
   settings.lockedIn = on;
   store.set('settings', settings);
   if (navigator.vibrate) navigator.vibrate(15);
@@ -709,7 +718,8 @@ $('sheetForm').addEventListener('submit', () => {
   saveSteps();
 });
 $('sheetDel').addEventListener('click', () => { steps.splice(editIdx, 1); sheet.close(); saveSteps(); });
-sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); }); // Tippen auf Hintergrund schliesst
+sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
+$('lockDialog').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.close('cancel'); }); // Tippen auf Hintergrund schliesst
 
 /* ---------- Wecker ---------- */
 const alarm = { armed: false, target: null, ringing: false, plannedLeave: null };
