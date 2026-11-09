@@ -11,6 +11,14 @@ const store = {
   }
 };
 
+const DEFAULT_STEPS_EN = [
+  { name: 'Get up, light & water', min: 3 },
+  { name: 'Shower', min: 5 },
+  { name: 'Get dressed', min: 5 },
+  { name: 'Breakfast', min: 10 },
+  { name: 'Teeth & freshen up', min: 10 },
+  { name: 'Bag & shoes', min: 3 }
+];
 const DEFAULT_STEPS = [
   { name: 'Aufstehen, Licht & Wasser', min: 3 },
   { name: 'Duschen', min: 5 },
@@ -22,7 +30,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
   collapsed: {}
 };
 
@@ -43,9 +51,9 @@ function spokenDuration(sec) {
   sec = Math.round(sec);
   const m = Math.floor(sec / 60), s = sec % 60;
   const parts = [];
-  if (m) parts.push(m === 1 ? 'eine Minute' : m + ' Minuten');
-  if (s) parts.push(s + ' Sekunden');
-  return parts.join(' und ') || 'null Sekunden';
+  if (m) parts.push(m === 1 ? t('eine Minute') : t('{n} Minuten', { n: m }));
+  if (s) parts.push(t('{n} Sekunden', { n: s }));
+  return parts.join(t(' und ')) || t('null Sekunden');
 }
 
 function wakeMin() {
@@ -195,8 +203,9 @@ function chime() {
 /* ---------- Sprache ---------- */
 let voice = null;
 function germanVoices() {
-  const order = l => l === 'de-CH' ? 0 : l === 'de-DE' ? 1 : 2;
-  return speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('de'))
+  const pref = LANG === 'en' ? ['en-GB', 'en-US'] : ['de-CH', 'de-DE'];
+  const order = l => { const i = pref.indexOf(l.replace('_', '-')); return i < 0 ? 9 : i; };
+  return speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith(LANG))
     .sort((a, b) => order(a.lang) - order(b.lang) || a.name.localeCompare(b.name));
 }
 function pickVoice() {
@@ -204,13 +213,16 @@ function pickVoice() {
   voice = vs.find(v => v.voiceURI === settings.voiceURI) || vs[0] || null;
   renderVoices();
 }
-const LANG_NAME = { 'de-CH': 'Schweiz', 'de-DE': 'Deutschland', 'de-AT': 'Österreich' };
+function regionName(lang) {
+  const r = lang.split(/[-_]/)[1];
+  try { return r ? new Intl.DisplayNames([LANG], { type: 'region' }).of(r.toUpperCase()) : lang; } catch { return lang; }
+}
 function renderVoices() {
   const sel = document.getElementById('voiceSel'); if (!sel) return;
   const vs = germanVoices();
   sel.innerHTML = vs.length
-    ? vs.map(v => `<option value="${v.voiceURI.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')} (${LANG_NAME[v.lang] || v.lang})</option>`).join('')
-    : '<option value="">Keine deutsche Stimme gefunden</option>';
+    ? vs.map(v => `<option value="${v.voiceURI.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')} (${regionName(v.lang)})</option>`).join('')
+    : `<option value="">${t('Keine passende Stimme gefunden')}</option>`;
   sel.value = voice ? voice.voiceURI : '';
   sel.disabled = !vs.length;
 }
@@ -226,7 +238,7 @@ function speak(text, delay = 450) {
   const go = () => {
     if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = voice ? voice.lang : 'de-DE';
+    u.lang = voice ? voice.lang : (LANG === 'en' ? 'en-US' : 'de-DE');
     try { if (voice) u.voice = voice; } catch { /* Stimme nicht verfügbar: Standardstimme */ }
     u.rate = settings.rate || 1; u.volume = 1;
     speechSynthesis.speak(u);
@@ -236,7 +248,7 @@ function speak(text, delay = 450) {
 }
 // Für Test-Knöpfe: sofort sprechen, noch innerhalb des Antippens
 function sayNow(text) {
-  if (!('speechSynthesis' in window)) { alert('Dieser Browser unterstützt keine Sprachausgabe.'); return; }
+  if (!('speechSynthesis' in window)) { alert(t('Dieser Browser unterstützt keine Sprachausgabe.')); return; }
   speak(text, 0);
 }
 // Eigene Aufnahme abspielen, sonst Computerstimme
@@ -357,25 +369,25 @@ function renderClips() {
   const list = document.getElementById('clips'); if (!list) return;
   list.innerHTML = CLIP_DEFS.map(d => {
     const has = !!clips[d.id], recording = rec && rec.id === d.id;
-    const status = recording ? `Aufnahme läuft · ${Math.floor((Date.now() - rec.t0) / 1000)} s` : clipErr[d.id] ? 'Kann nicht abgespielt werden' : has ? 'Eigene Aufnahme' : 'Computerstimme';
+    const status = recording ? t('Aufnahme läuft · {n} s', { n: Math.floor((Date.now() - rec.t0) / 1000) }) : clipErr[d.id] ? t('Kann nicht abgespielt werden') : has ? t('Eigene Aufnahme') : t('Computerstimme');
     const main = micFailed
-      ? `<label class="ibtn" aria-label="Audiodatei wählen">${ICON.file}<input type="file" accept="audio/*" data-file="${d.id}" hidden></label>`
-      : `<button class="ibtn ${recording ? 'rec' : ''}" data-rec="${d.id}" aria-label="${recording ? 'Stopp' : 'Aufnehmen'}">${recording ? ICON.stop : ICON.mic}</button>`;
+      ? `<label class="ibtn" aria-label="${t('Audiodatei wählen')}">${ICON.file}<input type="file" accept="audio/*" data-file="${d.id}" hidden></label>`
+      : `<button class="ibtn ${recording ? 'rec' : ''}" data-rec="${d.id}" aria-label="${recording ? t('Stopp') : t('Aufnehmen')}">${recording ? ICON.stop : ICON.mic}</button>`;
     return `<li class="row clip ${has ? 'has' : ''} ${clipErr[d.id] ? 'err' : ''}">
-      <span class="grow">${d.name}<span class="sub">${status}</span></span>
-      ${has && !recording ? `<button class="ibtn ghost" data-del="${d.id}" aria-label="Löschen">${ICON.del}</button><button class="ibtn ghost" data-play="${d.id}" aria-label="Anhören">${ICON.play}</button>` : ''}
+      <span class="grow">${t(d.name)}<span class="sub">${status}</span></span>
+      ${has && !recording ? `<button class="ibtn ghost" data-del="${d.id}" aria-label="${t('Löschen')}">${ICON.del}</button><button class="ibtn ghost" data-play="${d.id}" aria-label="${t('Anhören')}">${ICON.play}</button>` : ''}
       ${main}</li>`;
   }).join('');
   const hint = document.getElementById('clipHint');
   if (hint) hint.textContent = micFailed
-    ? 'Das Mikrofon ist hier nicht verfügbar. Nimm die Sätze mit der Sprachmemo-App auf und wähle die Datei hier aus.'
-    : 'Tippe aufs Mikrofon, sprich den Satz und tippe auf Stopp. Ohne Aufnahme spricht die Computerstimme.';
+    ? t('Das Mikrofon ist hier nicht verfügbar. Nimm die Sätze mit der Sprachmemo-App auf und wähle die Datei hier aus.')
+    : t('Tippe aufs Mikrofon, sprich den Satz und tippe auf Stopp. Ohne Aufnahme spricht die Computerstimme.');
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('#clips [data-rec], #clips [data-play], #clips [data-del]'); if (!b) return;
   if (b.dataset.rec) { if (rec) stopRec(); else startRec(b.dataset.rec); }
   else if (b.dataset.play) playClip(b.dataset.play);
-  else if (b.dataset.del && confirm('Aufnahme löschen?')) deleteClip(b.dataset.del);
+  else if (b.dataset.del && confirm(t('Aufnahme löschen?'))) deleteClip(b.dataset.del);
 });
 document.addEventListener('change', e => {
   const inp = e.target.closest('#clips [data-file]'); if (!inp || !inp.files[0]) return;
@@ -407,7 +419,7 @@ function applyPalette() {
   $('palettes').innerHTML = PALETTES.map(x => `
     <li class="row tap ${x.id === p.id ? 'on' : ''}" data-id="${x.id}">
       <span class="radio"></span>
-      <span class="grow">${x.name}</span>
+      <span class="grow">${t(x.name)}</span>
       <span class="swatches">${x.c.map(c => `<b style="background:${c}" title="${c}"></b>`).join('')}</span>
     </li>`).join('');
 }
@@ -427,12 +439,13 @@ document.querySelectorAll('.seg[data-key]').forEach(seg => {
     settings[key] = num ? Number(b.dataset.v) : b.dataset.v;
     if (['fadeSec', 'dawnMin', 'snooze'].includes(key)) settings.preset = 'custom';
     if (key === 'rate') sampleVoice();
+    if (key === 'lang') { setLang(b.dataset.v); return; }
     saveSettings();
   });
 });
 function renderSegs() {
   document.querySelectorAll('.seg[data-key]').forEach(seg =>
-    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(settings[seg.dataset.key]) === b.dataset.v)));
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(seg.dataset.key === 'lang' ? LANG : settings[seg.dataset.key]) === b.dataset.v)));
 }
 
 // Felder & Schalter
@@ -449,8 +462,8 @@ function renderSounds() {
   $('soundList').innerHTML = Object.entries(SOUND_NAMES).map(([id, [n, sub]]) => `
     <li class="row tap ${settings.sound === id ? 'on' : ''}" data-id="${id}">
       <span class="radio"></span>
-      <span class="grow">${n}</span>
-      <button class="play" data-play="${id}" aria-label="${n} anhören">${PLAY_ICON}</button>
+      <span class="grow">${t(n)}</span>
+      <button class="play" data-play="${id}" aria-label="${t(n)}">${PLAY_ICON}</button>
     </li>`).join('');
 }
 $('soundList').addEventListener('click', e => {
@@ -468,14 +481,15 @@ function renderSummary() {
   $('leaveBar').classList.toggle('locked', !leaveFix);
   $('sumWake').textContent = fromMin(wakeMin());
   $('sumLeave').textContent = fromMin(leaveMin());
-  $('sumTotal').textContent = totalMin() + ' Min';
+  $('sumTotal').textContent = t('{n} Min Routine', { n: totalMin() });
   $('timeline').innerHTML = steps.map(s => `<i style="flex:${s.min}"></i>`).join('');
   const w = wakeMin();
   $('bedtimes').innerHTML = [6, 5, 4].map((c, i) =>
     `<div class="bubble ${i === 0 ? 'rec' : ''}"><strong>${fromMin(w - c * 90 - 15)}</strong><span>${(c * 1.5).toString().replace('.', ',')} h</span></div>`).join('');
   const d = new Date();
-  $('today').textContent = d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
-  $('routineMeta').textContent = `${totalMin()} Min`;
+  const date = d.toLocaleDateString(LANG === 'en' ? 'en-GB' : 'de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('today').textContent = settings.name ? t('Hallo {name}', { name: settings.name }) + ' · ' + date : date;
+  $('routineMeta').textContent = t('{n} Min', { n: totalMin() });
 }
 
 /* ---------- Aufsteh-Presets ---------- */
@@ -488,12 +502,17 @@ const PRESETS = [
 const FADE_TXT = { 30: '30 s', 60: '1 min', 120: '2 min' };
 function renderPresets() {
   $('presets').innerHTML = PRESETS.map(p => `
-    <button class="preset ${settings.preset === p.id ? 'on' : ''}" data-id="${p.id}"><span class="p-ico">${p.icon}</span><span>${p.name}</span></button>`).join('') +
-    `<button class="preset wide ${settings.preset === 'custom' ? 'on' : ''}" data-id="custom"><span class="p-ico">🎚️</span><span>Individuell</span></button>`;
+    <button class="preset ${settings.preset === p.id ? 'on' : ''}" data-id="${p.id}"><span class="p-ico">${p.icon}</span><span>${t(p.name)}</span></button>`).join('') +
+    `<button class="preset wide ${settings.preset === 'custom' ? 'on' : ''}" data-id="custom"><span class="p-ico">🎚️</span><span>${t('Individuell')}</span></button>`;
   const custom = settings.preset === 'custom';
   $('customBox').classList.toggle('hidden', !custom);
   $('presetSum').textContent = custom ? '' :
-    `${SOUND_NAMES[settings.sound][0]} · Ton Beginn ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
+    t('{sound} · Ton Beginn {fade} · Licht {light} · {snooze}', {
+      sound: t(SOUND_NAMES[settings.sound][0]),
+      fade: FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s',
+      light: settings.dawnMin ? settings.dawnMin + ' min' : t('aus'),
+      snooze: settings.snooze ? t('Schlummern {n} min', { n: settings.snooze }) : t('kein Schlummern')
+    });
 }
 $('presets').addEventListener('click', e => {
   const b = e.target.closest('.preset'); if (!b) return;
@@ -512,7 +531,7 @@ function renderSections() {
     $('sec-' + h.dataset.sec).classList.toggle('closed', closed);
   });
   const p = PRESETS.find(x => x.id === settings.preset);
-  $('peek-aufstehen').textContent = p ? p.icon + ' ' + p.name : '🎚️ Individuell';
+  $('peek-aufstehen').textContent = p ? p.icon + ' ' + t(p.name) : '🎚️ ' + t('Individuell');
   $('peek-bett').textContent = fromMin(wakeMin() - 6 * 90 - 15);
 }
 document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', () => {
@@ -522,7 +541,7 @@ document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', 
 }));
 
 /* ---------- Stimme ---------- */
-function sampleVoice() { sayNow('Halbzeit: Duschen. Noch zwei Minuten und dreissig Sekunden.'); }
+function sampleVoice() { sayNow(t('Halbzeit: Duschen. Noch zwei Minuten und dreissig Sekunden.')); }
 $('voiceSel').addEventListener('change', e => {
   settings.voiceURI = e.target.value;
   store.set('settings', settings);
@@ -539,30 +558,30 @@ function renderAll() { document.body.classList.toggle('speech-off', !settings.sp
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('.tabbar button').forEach(x => x.classList.toggle('active', x === b));
-  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  document.querySelectorAll('.tab').forEach(tab => tab.classList.toggle('active', tab.id === 'tab-' + b.dataset.tab));
   window.scrollTo(0, 0);
 }));
 
 $('testSpeech').addEventListener('click', () => {
   const s = steps[1] || steps[0];
-  sayNow(s ? `Halbzeit: ${s.name}. Noch ${spokenDuration(s.min * 30)}.` : 'Test');
+  sayNow(s ? t('Halbzeit: {name}. Noch {dur}.', { name: s.name, dur: spokenDuration(s.min * 30) }) : 'Test');
 });
 
 /* ---------- UI: Routine bearbeiten ---------- */
 function saveSteps() { store.set('steps', steps); renderSummary(); renderSteps(); }
 
 function renderSteps() {
-  let t = wakeMin();
+  let tm = wakeMin();
   const rows = steps.map((s, i) => {
     const row = `<li class="row" data-i="${i}">
-      <span class="t">${fromMin(t)}</span>
+      <span class="t">${fromMin(tm)}</span>
       <span class="grow"></span><span class="pill">${s.min}′</span>
-      <span class="grip" aria-label="Verschieben"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></svg></span></li>`;
-    t += s.min; return row;
+      <span class="grip" aria-label="${t('Verschieben')}"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></svg></span></li>`;
+    tm += s.min; return row;
   }).join('');
   $('steps').innerHTML =
-    `<li class="row marker"><span class="t">${fromMin(wakeMin())}</span><span class="grow">⏰ Aufstehen</span></li>` + rows +
-    `<li class="row marker"><span class="t">${fromMin(leaveMin())}</span><span class="grow">🚪 Aus dem Haus</span></li>`;
+    `<li class="row marker"><span class="t">${fromMin(wakeMin())}</span><span class="grow">⏰ ${t('Aufstehen')}</span></li>` + rows +
+    `<li class="row marker"><span class="t">${fromMin(leaveMin())}</span><span class="grow">🚪 ${t('Aus dem Haus')}</span></li>`;
   // Namen sicher als Text einsetzen
   $('steps').querySelectorAll('li[data-i]').forEach(li => { li.querySelector('.grow').textContent = steps[+li.dataset.i].name; });
 }
@@ -619,7 +638,7 @@ let editIdx = -1, sheetMin = 5;
 function openSheet(i) {
   editIdx = i;
   const s = steps[i] || { name: '', min: 5 };
-  $('sheetTitle').textContent = i < 0 ? 'Neu' : 'Bearbeiten';
+  $('sheetTitle').textContent = i < 0 ? t('Neu') : t('Bearbeiten');
   $('sheetName').value = s.name;
   sheetMin = s.min; $('sheetMin').textContent = sheetMin;
   $('sheetDel').classList.toggle('hidden', i < 0);
@@ -646,7 +665,7 @@ sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); })
 const alarm = { armed: false, target: null, ringing: false, plannedLeave: null };
 
 function armAlarm() {
-  if (!steps.length && settings.mode === 'leave') { alert('Bitte zuerst mindestens einen Schritt in der Routine anlegen.'); return; }
+  if (!steps.length && settings.mode === 'leave') { alert(t('Bitte zuerst mindestens einen Schritt in der Routine anlegen.')); return; }
   startKeepAlive();
   if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance('')); // Sprache freischalten (iOS)
   const target = nextOccurrence(((wakeMin() % 1440) + 1440) % 1440);
@@ -669,6 +688,7 @@ function ring() {
   $('dawn').style.opacity = 1;
   $('armedView').classList.add('hidden');
   $('ringView').classList.remove('hidden');
+  $('hello').textContent = settings.name ? t('Guten Morgen, {name}', { name: settings.name }) : t('Guten Morgen');
   $('snoozeBtn').classList.toggle('hidden', !settings.snooze);
   $('snoozeBtn').textContent = `+${settings.snooze} min`;
   playMelody(settings.sound, settings.fadeSec);
@@ -732,16 +752,17 @@ function goToStep(i, now, announce = true) {
   run.saidOne = s.min <= 2;     // bei 2 Min. fällt „Halbzeit“ auf „noch 1 Minute“
   if (announce) {
     const prev = run.steps[i - 1];
-    const intro = prev ? `${prev.name} ist vorbei. ` : '';
-    say(`${intro}Jetzt: ${s.name}, ${spokenDuration(s.min * 60)}.`);
+    const intro = prev ? t('{name} ist vorbei. ', { name: prev.name })
+      : settings.name ? t('Guten Morgen, {name}! ', { name: settings.name }) : '';
+    say(intro + t('Jetzt: {name}, {dur}.', { name: s.name, dur: spokenDuration(s.min * 60) }));
   }
   renderRun(now);
 }
 
 function finishRoutine() {
   const late = Date.now() - run.plannedLeave;
-  if (late > 60000) say(`Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.`);
-  else announce('leave', 'Zeit, aus dem Haus zu gehen. Schönen Tag!');
+  if (late > 60000) say(t("Fertig. Los geht's, du bist {n} Minuten spät dran.", { n: Math.round(late / 60000) }));
+  else announce('leave', t('Zeit, aus dem Haus zu gehen. Schönen Tag, {name}!', { name: settings.name }).replace(', !', '!'));
   run = null;
   stopKeepAlive(); unlockScreen();
   $('runView').classList.add('hidden');
@@ -762,17 +783,17 @@ function tickRun(now) {
   }
   if (advanced) {
     const s = run.steps[run.idx], prev = run.steps[run.idx - 1];
-    say(`${prev.name} ist vorbei. Jetzt: ${s.name}, ${spokenDuration((run.dur - elapsed(now)) / 1000)}.`);
+    say(t('{name} ist vorbei. ', { name: prev.name }) + t('Jetzt: {name}, {dur}.', { name: s.name, dur: spokenDuration((run.dur - elapsed(now)) / 1000) }));
   }
   const s = run.steps[run.idx];
   const e = elapsed(now), rem = (run.dur - e) / 1000;
   if (!run.saidHalf && e >= run.dur / 2) {
     run.saidHalf = true;
-    if (e - run.dur / 2 < 20000) announce('half', `Halbzeit: ${s.name}. Noch ${spokenDuration(Math.round(rem / 5) * 5)}.`);
+    if (e - run.dur / 2 < 20000) announce('half', t('Halbzeit: {name}. Noch {dur}.', { name: s.name, dur: spokenDuration(Math.round(rem / 5) * 5) }));
   }
   if (!run.saidOne && rem <= 60) {
     run.saidOne = true;
-    if (rem > 40) announce('one', `${s.name}: noch eine Minute.`);
+    if (rem > 40) announce('one', t('{name}: noch eine Minute.', { name: s.name }));
   }
   renderRun(now);
 }
@@ -781,12 +802,12 @@ function renderRun(now) {
   if (!run) return;
   const s = run.steps[run.idx], next = run.steps[run.idx + 1];
   const e = elapsed(now), remMs = run.dur - e;
-  $('runStepNo').textContent = `${run.idx + 1}/${run.steps.length}` + (run.paused ? ' · Pause' : '');
+  $('runStepNo').textContent = `${run.idx + 1}/${run.steps.length}` + (run.paused ? t(' · Pause') : '');
   $('runName').textContent = s.name;
   $('runRemaining').textContent = fmtMMSS(remMs / 1000);
   $('runBar').style.strokeDashoffset = (553 * (e / run.dur)).toFixed(1);
-  const soon = !run.paused && remMs <= 5000 ? ` in ${Math.max(1, Math.ceil(remMs / 1000))}` : '';
-  $('runNext').textContent = next ? `→ ${next.name}${soon}` : `→ Aus dem Haus${soon}`;
+  const soon = !run.paused && remMs <= 5000 ? t(' in {n}', { n: Math.max(1, Math.ceil(remMs / 1000)) }) : '';
+  $('runNext').textContent = next ? `→ ${next.name}${soon}` : `→ ${t('Aus dem Haus')}${soon}`;
   $('runNext').classList.toggle('soon', !!soon);
   const restMs = run.steps.slice(run.idx + 1).reduce((a, x) => a + x.min * 60000, 0);
   const est = now + remMs + restMs;
@@ -820,7 +841,7 @@ $('runPause').addEventListener('click', () => {
   renderRun(now);
 });
 $('runStop').addEventListener('click', () => {
-  if (!confirm('Routine wirklich abbrechen?')) return;
+  if (!confirm(t('Routine wirklich abbrechen?'))) return;
   run = null; stopKeepAlive(); unlockScreen();
   if ('speechSynthesis' in window) speechSynthesis.cancel();
   $('runView').classList.add('hidden');
@@ -836,8 +857,46 @@ function tick() {
 }
 setInterval(tick, 250);
 
+/* ---------- Sprache & Name ---------- */
+const sameSteps = (a, b) => a.length === b.length && a.every((x, i) => x.name === b[i].name && x.min === b[i].min);
+function setLang(lang) {
+  settings.lang = lang;
+  LANG = lang;
+  // Unveränderte Standard-Schritte in der neuen Sprache anzeigen
+  if (sameSteps(steps, lang === 'en' ? DEFAULT_STEPS : DEFAULT_STEPS_EN)) {
+    steps = (lang === 'en' ? DEFAULT_STEPS_EN : DEFAULT_STEPS).map(x => ({ ...x }));
+    store.set('steps', steps);
+  }
+  store.set('settings', settings);
+  applyPalette();
+  renderAll();
+  renderClips();
+  if ('speechSynthesis' in window) pickVoice();
+  translateStatic();
+}
+function setName(name) {
+  settings.name = name.trim().slice(0, 30);
+  store.set('settings', settings);
+  $('nameInput').value = settings.name;
+  renderSummary();
+}
+$('nameInput').addEventListener('change', e => { if (e.target.value.trim()) setName(e.target.value); else e.target.value = settings.name; });
+$('onboardForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const n = $('onboardName').value.trim(); if (!n) return;
+  setName(n);
+  if (!settings.lang) setLang(LANG);
+  $('onboard').classList.add('hidden');
+});
+
+LANG = settings.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
+if (!settings.lang && sameSteps(steps, DEFAULT_STEPS) && LANG === 'en') steps = DEFAULT_STEPS_EN.map(x => ({ ...x }));
+$('nameInput').value = settings.name;
+if (!settings.name) $('onboard').classList.remove('hidden');
+
 applyPalette();
 renderAll();
+translateStatic();
 loadClips();
 if ('speechSynthesis' in window) pickVoice();
 tick();
