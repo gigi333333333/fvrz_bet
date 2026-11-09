@@ -350,8 +350,8 @@ function renderSteps() {
     t += s.min; return row;
   }).join('');
   $('steps').innerHTML =
-    `<li class="row marker"><span class="t">${fromMin(wakeMin())}</span><span class="grow">⏰ Weckruf</span></li>` + rows +
-    `<li class="row marker"><span class="t">${fromMin(leaveMin())}</span><span class="grow">🚪 Abflug</span></li>`;
+    `<li class="row marker"><span class="t">${fromMin(wakeMin())}</span><span class="grow">⏰ Aufstehen</span></li>` + rows +
+    `<li class="row marker"><span class="t">${fromMin(leaveMin())}</span><span class="grow">🚪 Aus dem Haus</span></li>`;
   // Namen sicher als Text einsetzen
   $('steps').querySelectorAll('li[data-i]').forEach(li => { li.querySelector('.grow').textContent = steps[+li.dataset.i].name; });
 }
@@ -529,7 +529,7 @@ function goToStep(i, now, announce = true) {
 
 function finishRoutine() {
   const late = Date.now() - run.plannedLeave;
-  say(late > 60000 ? `Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.` : 'Abflug! Zeit zu gehen. Schönen Tag!');
+  say(late > 60000 ? `Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.` : 'Zeit, aus dem Haus zu gehen. Schönen Tag!');
   run = null;
   stopKeepAlive(); unlockScreen();
   $('runView').classList.add('hidden');

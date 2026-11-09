@@ -22,15 +22,15 @@
 
       <div class="hero">
         <div class="seg" data-key="mode">
-          <button data-v="leave">Abflug fix</button>
-          <button data-v="wake">Weckruf fix</button>
+          <button data-v="leave">Aus dem Haus fix</button>
+          <button data-v="wake">Aufstehen fix</button>
         </div>
-        <p class="hero-label"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg><span>Weckruf</span></p>
+        <p class="hero-label"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg><span>Aufstehen</span></p>
         <div class="hero-time" id="sumWake">--:--</div>
-        <input type="time" id="wakeTime" class="hero-time-input hidden" aria-label="Weckruf">
+        <input type="time" id="wakeTime" class="hero-time-input hidden" aria-label="Aufstehen">
         <div class="hero-input">
-          <span class="hero-row-label"><svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg><span>Abflug</span></span>
-          <input type="time" id="leaveTime" aria-label="Abflug">
+          <span class="hero-row-label"><svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg><span>Aus dem Haus</span></span>
+          <input type="time" id="leaveTime" aria-label="Aus dem Haus">
           <strong id="sumLeave" class="leave-static hidden">--:--</strong>
         </div>
         <div class="timeline" id="timeline" aria-hidden="true"></div>
@@ -38,7 +38,7 @@
         <button id="arm" class="btn primary block">Aktivieren</button>
       </div>
 
-      <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Aufstehen</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
+      <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Wecken</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
       <div class="sec-body" id="sec-aufstehen"><div class="sec-inner">
       <div class="presets" id="presets"></div>
       <p class="preset-sum" id="presetSum"></p>
@@ -142,7 +142,7 @@
     <div id="dawn" aria-hidden="true"></div>
     <div class="armed-inner">
       <div class="big-clock" id="armedClock">--:--</div>
-      <p>Weckruf <strong id="armedWake">--:--</strong></p>
+      <p>Aufstehen <strong id="armedWake">--:--</strong></p>
       <p class="small" id="armedIn"></p>
       <button id="disarm" class="btn ghost">Aus</button>
     </div>
@@ -171,8 +171,8 @@
       </div>
       <p id="runNext" class="next"></p>
       <div class="leave-info">
-        <div><span>Abflug geplant</span><strong id="runLeavePlan">--:--</strong></div>
-        <div><span>Abflug jetzt</span><strong id="runLeaveEst">--:--</strong></div>
+        <div><span>Aus dem Haus · Plan</span><strong id="runLeavePlan">--:--</strong></div>
+        <div><span>Aus dem Haus · jetzt</span><strong id="runLeaveEst">--:--</strong></div>
       </div>
       <div class="run-btns">
         <button id="runPause" class="btn ghost round" aria-label="Pause">❚❚</button>
