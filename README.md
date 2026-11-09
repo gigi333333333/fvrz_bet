@@ -1,4 +1,4 @@
-# Morgenplan
+# Routinely
 
 Web-App (PWA), die den Morgen strukturiert: wissenschaftlich begründeter Wecker + Routine in Zeitblöcken mit Sprachdurchsagen.
 
@@ -10,5 +10,5 @@ Web-App (PWA), die den Morgen strukturiert: wissenschaftlich begründeter Wecker
 
 ## Online stellen
 
-- **GitHub Pages:** Settings → Pages → Source: *GitHub Actions*. Danach veröffentlicht `.github/workflows/pages.yml` den Ordner `morgen/` bei jedem Push auf `main`. Adresse: `https://gigi333333333.github.io/fvrz_bet/`. Für private Projekte braucht GitHub Pages einen bezahlten Plan.
+- **GitHub Pages:** Settings → Pages → Source: *GitHub Actions*. Danach veröffentlicht `.github/workflows/pages.yml` den Ordner `morgen/` bei jedem Push auf `main`. Adresse: `https://gigi333333333.github.io/routinely/`. Für private Projekte braucht GitHub Pages einen bezahlten Plan.
 - **Alternativ (Projekt bleibt privat):** Cloudflare Pages oder Netlify mit dem GitHub-Projekt verbinden, Build-Befehl leer lassen, Ausgabeordner `morgen`.
