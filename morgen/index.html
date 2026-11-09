@@ -20,6 +20,13 @@
         <h1>Wecker</h1>
       </header>
 
+      <div class="mode-switch" id="modeSwitch" role="radiogroup" aria-label="Weckmodus">
+        <span class="mode-thumb" aria-hidden="true"></span>
+        <button type="button" data-lock="0" role="radio">Normal</button>
+        <button type="button" data-lock="1" role="radio">🔒 Locked in</button>
+      </div>
+      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.</p>
+
       <div class="hero">
         <div class="seg" data-key="mode">
           <button data-v="leave">Aus dem Haus fix</button>
@@ -187,6 +194,12 @@
       <div class="big-clock" id="ringClock">--:--</div>
       <p class="tip">☀️ 💧</p>
       <button id="stopAlarm" class="btn dark block">Ich bin wach</button>
+      <!-- Locked in: Liegestütze zählen, mit der Nase tippen -->
+      <div id="pushBox" class="push-box hidden">
+        <button id="pushPad" class="push-pad" aria-label="Liegestütz zählen"><strong id="pushCount">0</strong><span id="pushOf">/ 15</span></button>
+        <p class="push-hint">Handy auf den Boden unter dein Gesicht. Bei jedem Liegestütz unten mit der Nase tippen.</p>
+        <button id="pushEmergency" class="btn link">Notfall: 5 Sekunden gedrückt halten</button>
+      </div>
       <button id="snoozeBtn" class="btn ghost block hidden">Schlummern</button>
     </div>
   </div>

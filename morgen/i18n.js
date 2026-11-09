@@ -155,6 +155,16 @@ const EN = {
   'Am meisten hilft eine regelmässige Aufstehzeit, auch am Wochenende (±1 Stunde). Jugendliche brauchen 8–10 Stunden Schlaf, Erwachsene 7–9.':
     'A regular wake-up time helps most, weekends included (±1 hour). Teenagers need 8–10 hours of sleep, adults 7–9.',
 
+  // Locked in
+  'Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.':
+    'Harsh voice with swearing. The alarm only stops after you’ve done 15 push-ups.',
+  'Liegestütz zählen': 'Count push-up',
+  'Weckmodus': 'Alarm mode',
+  'Handy auf den Boden unter dein Gesicht. Bei jedem Liegestütz unten mit der Nase tippen.':
+    'Put the phone on the floor under your face. Tap it with your nose at the bottom of every push-up.',
+  'Notfall: 5 Sekunden gedrückt halten': 'Emergency: hold for 5 seconds',
+  'Halten …': 'Keep holding …',
+
   // Willkommen
   'Willkommen bei Routinely': 'Welcome to Routinely',
   'Wie heisst du?': 'What’s your name?',
