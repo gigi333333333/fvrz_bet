@@ -263,8 +263,11 @@ $('soundList').addEventListener('click', e => {
 });
 
 function renderSummary() {
-  $('leaveRow').classList.toggle('hidden', settings.mode !== 'leave');
-  $('wakeRow').classList.toggle('hidden', settings.mode !== 'wake');
+  const leaveFix = settings.mode === 'leave';
+  $('sumWake').classList.toggle('hidden', !leaveFix);
+  $('wakeTime').classList.toggle('hidden', leaveFix);
+  $('leaveTime').classList.toggle('hidden', !leaveFix);
+  $('sumLeave').classList.toggle('hidden', leaveFix);
   $('sumWake').textContent = fromMin(wakeMin());
   $('sumLeave').textContent = fromMin(leaveMin());
   $('sumTotal').textContent = totalMin() + ' Min';
@@ -339,15 +342,65 @@ function saveSteps() { store.set('steps', steps); renderSummary(); renderSteps()
 
 function renderSteps() {
   let t = wakeMin();
-  $('steps').innerHTML = steps.map((s, i) => {
+  const rows = steps.map((s, i) => {
     const row = `<li class="row" data-i="${i}">
       <span class="t">${fromMin(t)}</span>
-      <span class="grow"></span><span class="pill">${s.min}′</span></li>`;
+      <span class="grow"></span><span class="pill">${s.min}′</span>
+      <span class="grip" aria-label="Verschieben"><svg viewBox="0 0 24 24"><path d="M5 9h14M5 15h14"/></svg></span></li>`;
     t += s.min; return row;
   }).join('');
+  $('steps').innerHTML =
+    `<li class="row marker"><span class="t">${fromMin(wakeMin())}</span><span class="grow">⏰ Weckruf</span></li>` + rows +
+    `<li class="row marker"><span class="t">${fromMin(leaveMin())}</span><span class="grow">🚪 Abflug</span></li>`;
   // Namen sicher als Text einsetzen
-  $('steps').querySelectorAll('li').forEach((li, i) => { li.querySelector('.grow').textContent = steps[i].name; });
+  $('steps').querySelectorAll('li[data-i]').forEach(li => { li.querySelector('.grow').textContent = steps[+li.dataset.i].name; });
 }
+
+/* Schritte per Griff verschieben (Maus & Touch) */
+let drag = null;
+$('steps').addEventListener('pointerdown', e => {
+  const grip = e.target.closest('.grip'); if (!grip) return;
+  e.preventDefault();
+  const li = grip.closest('li');
+  const items = [...$('steps').querySelectorAll('li[data-i]')];
+  const from = items.indexOf(li);
+  drag = { li, items, from, to: from, y0: e.clientY, rects: items.map(x => x.getBoundingClientRect()) };
+  grip.setPointerCapture(e.pointerId);
+  li.classList.add('dragging');
+  $('steps').classList.add('sorting');
+  if (navigator.vibrate) navigator.vibrate(10);
+});
+$('steps').addEventListener('pointermove', e => {
+  if (!drag) return;
+  const { li, items, from, rects } = drag;
+  const dy = e.clientY - drag.y0;
+  li.style.transform = `translateY(${dy}px)`;
+  const center = rects[from].top + rects[from].height / 2 + dy;
+  let to = from;
+  rects.forEach((r, i) => {
+    const mid = r.top + r.height / 2;
+    if (i < from && center < mid) to = Math.min(to, i);
+    if (i > from && center > mid) to = Math.max(to, i);
+  });
+  if (to !== drag.to && navigator.vibrate) navigator.vibrate(5);
+  drag.to = to;
+  const h = rects[from].height;
+  items.forEach((x, i) => {
+    if (i === from) return;
+    const shift = (from < to && i > from && i <= to) ? -h : (from > to && i >= to && i < from) ? h : 0;
+    x.style.transform = shift ? `translateY(${shift}px)` : '';
+  });
+});
+function endDrag() {
+  if (!drag) return;
+  const { from, to } = drag;
+  drag = null;
+  $('steps').classList.remove('sorting');
+  if (from !== to) { const [m] = steps.splice(from, 1); steps.splice(to, 0, m); }
+  saveSteps();
+}
+$('steps').addEventListener('pointerup', endDrag);
+$('steps').addEventListener('pointercancel', endDrag);
 
 // Bottom-Sheet
 const sheet = $('sheet');
@@ -359,10 +412,12 @@ function openSheet(i) {
   $('sheetName').value = s.name;
   sheetMin = s.min; $('sheetMin').textContent = sheetMin;
   $('sheetDel').classList.toggle('hidden', i < 0);
-  $('sheetUp').classList.toggle('hidden', i < 1);
   sheet.showModal();
 }
-$('steps').addEventListener('click', e => { const li = e.target.closest('li'); if (li) openSheet(+li.dataset.i); });
+$('steps').addEventListener('click', e => {
+  if (e.target.closest('.grip')) return;
+  const li = e.target.closest('li[data-i]'); if (li) openSheet(+li.dataset.i);
+});
 $('addStep').addEventListener('click', () => openSheet(-1));
 sheet.querySelectorAll('.stepper button').forEach(b => b.addEventListener('click', () => {
   sheetMin = Math.min(120, Math.max(1, sheetMin + Number(b.dataset.d)));
@@ -374,9 +429,6 @@ $('sheetForm').addEventListener('submit', () => {
   saveSteps();
 });
 $('sheetDel').addEventListener('click', () => { steps.splice(editIdx, 1); sheet.close(); saveSteps(); });
-$('sheetUp').addEventListener('click', () => {
-  const i = editIdx; [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]]; sheet.close(); saveSteps();
-});
 sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); }); // Tippen auf Hintergrund schliesst
 
 /* ---------- Wecker ---------- */
@@ -477,7 +529,7 @@ function goToStep(i, now, announce = true) {
 
 function finishRoutine() {
   const late = Date.now() - run.plannedLeave;
-  say(late > 60000 ? `Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.` : 'Fertig. Zeit zu gehen. Schönen Tag!');
+  say(late > 60000 ? `Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.` : 'Abflug! Zeit zu gehen. Schönen Tag!');
   run = null;
   stopKeepAlive(); unlockScreen();
   $('runView').classList.add('hidden');

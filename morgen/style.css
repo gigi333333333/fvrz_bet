@@ -217,3 +217,25 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
 .sec-body.closed { grid-template-rows: 0fr; opacity: 0; }
 .sec-inner { overflow: hidden; min-height: 0; }
 .armed-inner { position: relative; z-index: 1; }
+
+/* Weckruf & Abflug */
+.hero-label { display: flex; align-items: center; justify-content: center; gap: 6px; margin: 20px 0 0; color: var(--muted); font-size: .9rem; font-weight: 600; letter-spacing: .02em; }
+.hero-label .ico { width: 18px; height: 18px; }
+.hero-time { margin-top: 2px; }
+.hero-time-input { display: block; width: 100%; text-align: center; font-size: clamp(3rem, 17vw, 4.6rem) !important; font-weight: 250 !important; letter-spacing: -.04em; color: var(--text) !important; padding: 0 !important; line-height: 1.05; }
+.hero-time-input::-webkit-datetime-edit { padding: 0; }
+.hero-time-input::-webkit-datetime-edit-fields-wrapper { display: flex; justify-content: center; }
+.hero-row-label { display: flex; align-items: center; gap: 8px; color: var(--muted); font-weight: 600; font-size: .95rem; }
+.hero-row-label .ico { width: 20px; height: 20px; }
+.leave-static { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; padding: 4px 10px; }
+
+/* Verschieben */
+.steps li[data-i] { position: relative; background: var(--surface); transition: transform .2s ease; touch-action: pan-y; }
+.steps.sorting li[data-i] { transition: transform .2s ease; }
+.steps li.dragging { transition: none !important; z-index: 2; box-shadow: 0 10px 30px rgba(0,0,0,.35); border-radius: 18px; }
+.grip { width: 38px; height: 38px; margin-right: -10px; display: grid; place-items: center; color: var(--muted); cursor: grab; touch-action: none; border-radius: 50%; }
+.grip svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.dragging .grip { cursor: grabbing; color: var(--primary); }
+.steps li.marker { cursor: default; color: var(--muted); font-weight: 600; font-size: .92rem; min-height: 46px; }
+.steps li.marker .t { color: var(--primary); font-weight: 600; }
+.steps { overflow: visible; }
