@@ -30,12 +30,19 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
   collapsed: {}
 };
 
 let steps = store.get('steps', DEFAULT_STEPS);
 let settings = Object.assign({}, DEFAULT_SETTINGS, store.get('settings', {}));
+// Einmalig: neue Standardfarben (Normal = Nachtblau, Locked in = Mono) auch für bestehende Nutzer
+if (!settings.palettesV2) {
+  settings.palette = 'nachtblau';
+  settings.paletteLocked = 'mono';
+  settings.palettesV2 = true;
+  store.set('settings', settings);
+}
 
 const $ = id => document.getElementById(id);
 
@@ -412,8 +419,12 @@ const PALETTES = [
   { id: 'salbei', name: 'Salbei', theme: '#F6F5F1', c: ['#2F6B57', '#E3ECE6', '#E8894A'] },
   { id: 'mono', name: 'Mono', theme: '#000000', c: ['#FFFFFF', '#1C1C1E', '#FF9F0A'] }
 ];
+// Jeder Modus hat seine eigene Palette
+const paletteKey = () => settings.lockedIn ? 'paletteLocked' : 'palette';
 function applyPalette() {
-  const p = PALETTES.find(x => x.id === settings.palette) || PALETTES[0];
+  const p = PALETTES.find(x => x.id === settings[paletteKey()]) || PALETTES[1];
+  const pm = document.getElementById('paletteMode');
+  if (pm) pm.textContent = '· ' + (settings.lockedIn ? '🔒 Locked in' : t('Normal'));
   document.documentElement.dataset.palette = p.id;
   document.querySelector('meta[name=theme-color]').content = p.theme;
   $('palettes').innerHTML = PALETTES.map(x => `
@@ -425,7 +436,7 @@ function applyPalette() {
 }
 $('palettes').addEventListener('click', e => {
   const li = e.target.closest('li'); if (!li) return;
-  settings.palette = li.dataset.id; store.set('settings', settings); applyPalette();
+  settings[paletteKey()] = li.dataset.id; store.set('settings', settings); applyPalette();
 });
 
 /* ---------- UI: Einstellungen ---------- */
@@ -577,6 +588,7 @@ function setLocked(on, confirmed = false) {
   settings.lockedIn = on;
   store.set('settings', settings);
   if (navigator.vibrate) navigator.vibrate(15);
+  applyPalette();
   renderMode();
   renderSections();
 }

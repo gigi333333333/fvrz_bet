@@ -340,3 +340,6 @@ body.speech-off .speech-opt { display: none !important; }
 .popup-tag { color: var(--text) !important; font-weight: 800; font-size: 1.15rem !important; font-style: italic; margin: 16px 0 20px !important; }
 .popup-btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
 .popup-btns .btn.ghost { margin-top: 0; }
+.title-sub { font-weight: 600; color: var(--muted); font-size: .9rem; }
+/* Farbwechsel beim Umschalten weich */
+.hero, .tabbar, .group, .mode-switch, .btn.primary { transition: background-color .35s, color .35s; }
