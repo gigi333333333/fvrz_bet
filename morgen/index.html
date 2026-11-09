@@ -23,22 +23,21 @@
 
       <div class="hero">
         <div class="seg" data-key="mode">
-          <button data-v="leave">Nach Abfahrt</button>
-          <button data-v="wake">Nach Weckzeit</button>
+          <button data-v="leave">Abfahrt</button>
+          <button data-v="wake">Weckzeit</button>
         </div>
-        <p class="hero-label">Wecken um</p>
         <div class="hero-time" id="sumWake">--:--</div>
         <div class="hero-input" id="leaveRow">
-          <span>Aus dem Haus um</span>
-          <input type="time" id="leaveTime">
+          <svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg>
+          <input type="time" id="leaveTime" aria-label="Aus dem Haus um">
         </div>
         <div class="hero-input hidden" id="wakeRow">
-          <span>Wecken um</span>
-          <input type="time" id="wakeTime">
+          <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2"/></svg>
+          <input type="time" id="wakeTime" aria-label="Wecken um">
         </div>
         <div class="timeline" id="timeline" aria-hidden="true"></div>
-        <p class="hero-meta"><span id="sumTotal">0 Min</span> Routine · aus dem Haus <strong id="sumLeave">--:--</strong></p>
-        <button id="arm" class="btn primary block">Wecker aktivieren</button>
+        <p class="hero-meta"><span id="sumTotal">0 Min</span> · <strong id="sumLeave">--:--</strong></p>
+        <button id="arm" class="btn primary block">Aktivieren</button>
       </div>
 
       <h2 class="group-title">Weckton</h2>
@@ -46,11 +45,11 @@
 
       <h2 class="group-title">Aufwachen</h2>
       <div class="group pad">
-        <p class="label">Lauter werden über</p>
+        <p class="label">Lauter werden</p>
         <div class="seg" data-key="fadeSec" data-num>
           <button data-v="30">30 s</button><button data-v="60">1 min</button><button data-v="120">2 min</button>
         </div>
-        <p class="label">Licht-Sonnenaufgang vorher</p>
+        <p class="label">Licht vorher</p>
         <div class="seg" data-key="dawnMin" data-num>
           <button data-v="0">Aus</button><button data-v="10">10</button><button data-v="20">20</button><button data-v="30">30 min</button>
         </div>
@@ -60,12 +59,11 @@
         </div>
       </div>
       <ul class="group">
-        <li class="row"><span>Routine danach automatisch starten</span><label class="switch"><input type="checkbox" id="autoRoutine"><i></i></label></li>
+        <li class="row"><span>Routine danach starten</span><label class="switch"><input type="checkbox" id="autoRoutine"><i></i></label></li>
       </ul>
 
-      <h2 class="group-title">Schlafenszeit</h2>
-      <ul class="group" id="bedtimes"></ul>
-      <p class="footnote">Schlafzyklen von ca. 90 Minuten, plus 15 Minuten zum Einschlafen.</p>
+      <h2 class="group-title">Ins Bett</h2>
+      <div class="bubbles" id="bedtimes"></div>
     </section>
 
     <!-- ROUTINE -->
@@ -75,26 +73,25 @@
         <h1>Routine</h1>
       </header>
       <ul class="group steps" id="steps"></ul>
-      <button id="addStep" class="btn ghost block">+ Schritt hinzufügen</button>
+      <button id="addStep" class="btn ghost block">+ Schritt</button>
 
       <h2 class="group-title">Durchsagen</h2>
       <ul class="group">
-        <li class="row"><span>Sprachdurchsagen</span><label class="switch"><input type="checkbox" id="speechOn"><i></i></label></li>
-        <li class="row tap" id="testSpeech"><span>Durchsage testen</span><span class="chev">›</span></li>
+        <li class="row"><span>Durchsagen</span><label class="switch"><input type="checkbox" id="speechOn"><i></i></label></li>
+        <li class="row tap" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
       </ul>
-      <p class="footnote">Bei jedem Start, zur Halbzeit und eine Minute vor Schluss.</p>
 
-      <button id="startNow" class="btn primary block">Routine jetzt starten</button>
+      <button id="startNow" class="btn primary block">Jetzt starten</button>
     </section>
 
     <!-- MEHR -->
     <section id="tab-mehr" class="tab">
       <header class="page-head"><h1>Mehr</h1></header>
 
-      <h2 class="group-title">Farbpalette</h2>
+      <h2 class="group-title">Farben</h2>
       <ul class="group" id="palettes"></ul>
 
-      <h2 class="group-title">Worauf der Wecker setzt</h2>
+      <h2 class="group-title">Wissen</h2>
       <div class="group">
         <details><summary>Melodie statt Piepen</summary><p>Studien der RMIT University (McFarlane et al., 2020) zeigen: Melodische Wecktöne gehen mit weniger Schlaftrunkenheit einher als harte Pieptöne. Gut sind erkennbare, aufsteigende Melodien mit 100–120 Schlägen pro Minute.</p></details>
         <details><summary>Langsam lauter</summary><p>Ein plötzlicher lauter Ton schreckt auf und treibt Puls und Stresshormone hoch. Der Ton startet darum leise und wird allmählich lauter.</p></details>
@@ -102,19 +99,19 @@
         <details><summary>Schlummertaste</summary><p>Die Forschung ist nicht einig (Sundelin et al., 2023, fanden bei 30 Minuten keinen klaren Schaden). Der Schlaf danach ist aber zerstückelt und die Zeit fehlt in der Routine. Standard ist „aus“.</p></details>
         <details><summary>Gleiche Zeit, jeden Tag</summary><p>Am meisten hilft eine regelmässige Aufstehzeit, auch am Wochenende (±1 Stunde). Jugendliche brauchen 8–10 Stunden Schlaf, Erwachsene 7–9.</p></details>
       </div>
-      <p class="footnote">Die App muss nachts geöffnet bleiben. Handy ans Ladekabel, Ton laut.</p>
+      <p class="footnote">Nachts: App offen, Handy am Kabel, Ton laut.</p>
     </section>
   </main>
 
   <nav class="tabbar" role="tablist">
     <button data-tab="wecker" class="active" aria-label="Wecker">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg><span>Wecker</span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg>
     </button>
     <button data-tab="routine" aria-label="Routine">
-      <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg><span>Routine</span>
+      <svg viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></svg>
     </button>
     <button data-tab="mehr" aria-label="Mehr">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg><span>Mehr</span>
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8v.01"/></svg>
     </button>
   </nav>
 
@@ -126,11 +123,11 @@
       <input id="sheetName" placeholder="z. B. Duschen" maxlength="40" required>
       <div class="stepper">
         <button type="button" data-d="-1" aria-label="weniger">−</button>
-        <div><strong id="sheetMin">5</strong><span>Minuten</span></div>
+        <div><strong id="sheetMin">5</strong><span>Min</span></div>
         <button type="button" data-d="1" aria-label="mehr">+</button>
       </div>
       <div class="sheet-actions">
-        <button type="button" class="btn ghost" id="sheetUp">Nach oben</button>
+        <button type="button" class="btn ghost" id="sheetUp">↑</button>
         <button type="button" class="btn danger" id="sheetDel">Löschen</button>
       </div>
       <button class="btn primary block" value="save">Speichern</button>
@@ -143,7 +140,7 @@
       <div class="big-clock" id="armedClock">--:--</div>
       <p>Wecker um <strong id="armedWake">--:--</strong></p>
       <p class="small" id="armedIn"></p>
-      <button id="disarm" class="btn ghost">Ausschalten</button>
+      <button id="disarm" class="btn ghost">Aus</button>
     </div>
   </div>
 
@@ -151,7 +148,7 @@
     <div class="ring-inner">
       <p class="hello">Guten Morgen</p>
       <div class="big-clock" id="ringClock">--:--</div>
-      <p class="tip">Licht an, aufstehen, ein Glas Wasser.</p>
+      <p class="tip">☀️ 💧</p>
       <button id="stopAlarm" class="btn dark block">Ich bin wach</button>
       <button id="snoozeBtn" class="btn ghost block hidden">Schlummern</button>
     </div>
@@ -170,11 +167,11 @@
       </div>
       <p id="runNext" class="next"></p>
       <div class="leave-info">
-        <div><span>Geplant</span><strong id="runLeavePlan">--:--</strong></div>
-        <div><span>Voraussichtlich</span><strong id="runLeaveEst">--:--</strong></div>
+        <div><span>Plan</span><strong id="runLeavePlan">--:--</strong></div>
+        <div><span>Ist</span><strong id="runLeaveEst">--:--</strong></div>
       </div>
       <div class="run-btns">
-        <button id="runPause" class="btn ghost">Pause</button>
+        <button id="runPause" class="btn ghost round" aria-label="Pause">❚❚</button>
         <button id="runDone" class="btn primary">Fertig</button>
       </div>
       <button id="runStop" class="btn link">Abbrechen</button>

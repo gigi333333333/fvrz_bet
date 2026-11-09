@@ -197,10 +197,10 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- UI: Paletten ---------- */
 const PALETTES = [
-  { id: 'morgenroete', name: 'Morgenröte', sub: 'Warm, wie ein Sonnenaufgang', theme: '#14151F', c: ['#FF8A5B', '#2B2E45', '#FFD166'] },
-  { id: 'nachtblau', name: 'Nachtblau', sub: 'Ruhig, wie Schlaf-Apps', theme: '#0B0E22', c: ['#7C8CFF', '#1C2247', '#6EE7C8'] },
-  { id: 'salbei', name: 'Salbei', sub: 'Hell und minimal, wie Planer-Apps', theme: '#F6F5F1', c: ['#2F6B57', '#E3ECE6', '#E8894A'] },
-  { id: 'mono', name: 'Mono', sub: 'Schwarz-weiss, ein Akzent', theme: '#000000', c: ['#FFFFFF', '#1C1C1E', '#FF9F0A'] }
+  { id: 'morgenroete', name: 'Morgenröte', theme: '#14151F', c: ['#FF8A5B', '#2B2E45', '#FFD166'] },
+  { id: 'nachtblau', name: 'Nachtblau', theme: '#0B0E22', c: ['#7C8CFF', '#1C2247', '#6EE7C8'] },
+  { id: 'salbei', name: 'Salbei', theme: '#F6F5F1', c: ['#2F6B57', '#E3ECE6', '#E8894A'] },
+  { id: 'mono', name: 'Mono', theme: '#000000', c: ['#FFFFFF', '#1C1C1E', '#FF9F0A'] }
 ];
 function applyPalette() {
   const p = PALETTES.find(x => x.id === settings.palette) || PALETTES[0];
@@ -209,7 +209,7 @@ function applyPalette() {
   $('palettes').innerHTML = PALETTES.map(x => `
     <li class="row tap ${x.id === p.id ? 'on' : ''}" data-id="${x.id}">
       <span class="radio"></span>
-      <span class="grow">${x.name}<span class="sub">${x.sub}</span></span>
+      <span class="grow">${x.name}</span>
       <span class="swatches">${x.c.map(c => `<b style="background:${c}" title="${c}"></b>`).join('')}</span>
     </li>`).join('');
 }
@@ -249,7 +249,7 @@ function renderSounds() {
   $('soundList').innerHTML = Object.entries(SOUND_NAMES).map(([id, [n, sub]]) => `
     <li class="row tap ${settings.sound === id ? 'on' : ''}" data-id="${id}">
       <span class="radio"></span>
-      <span class="grow">${n}<span class="sub">${sub}</span></span>
+      <span class="grow">${n}</span>
       <button class="play" data-play="${id}" aria-label="${n} anhören">${PLAY_ICON}</button>
     </li>`).join('');
 }
@@ -268,12 +268,11 @@ function renderSummary() {
   $('sumTotal').textContent = totalMin() + ' Min';
   $('timeline').innerHTML = steps.map(s => `<i style="flex:${s.min}"></i>`).join('');
   const w = wakeMin();
-  $('bedtimes').innerHTML = [6, 5, 4].map((c, i) => `
-    <li class="row"><span>${c} Zyklen<span class="sub">${(c * 1.5).toString().replace('.', ',')} Stunden Schlaf${i === 0 ? ' · ideal für Jugendliche' : ''}</span></span>
-    <span class="time-big ${i < 2 ? 'rec' : ''}">${fromMin(w - c * 90 - 15)}</span></li>`).join('');
+  $('bedtimes').innerHTML = [6, 5, 4].map((c, i) =>
+    `<div class="bubble ${i === 0 ? 'rec' : ''}"><strong>${fromMin(w - c * 90 - 15)}</strong><span>${(c * 1.5).toString().replace('.', ',')} h</span></div>`).join('');
   const d = new Date();
   $('today').textContent = d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
-  $('routineMeta').textContent = `${steps.length} Schritte · ${totalMin()} Minuten`;
+  $('routineMeta').textContent = `${totalMin()} Min`;
 }
 
 function renderAll() { renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
@@ -297,8 +296,8 @@ function renderSteps() {
   let t = wakeMin();
   $('steps').innerHTML = steps.map((s, i) => {
     const row = `<li class="row" data-i="${i}">
-      <span class="t">${fromMin(t)}</span><span class="dot"></span>
-      <span class="grow"></span><span class="pill">${s.min} Min</span><span class="chev">›</span></li>`;
+      <span class="t">${fromMin(t)}</span>
+      <span class="grow"></span><span class="pill">${s.min}′</span></li>`;
     t += s.min; return row;
   }).join('');
   // Namen sicher als Text einsetzen
@@ -311,7 +310,7 @@ let editIdx = -1, sheetMin = 5;
 function openSheet(i) {
   editIdx = i;
   const s = steps[i] || { name: '', min: 5 };
-  $('sheetTitle').textContent = i < 0 ? 'Neuer Schritt' : 'Schritt bearbeiten';
+  $('sheetTitle').textContent = i < 0 ? 'Neu' : 'Bearbeiten';
   $('sheetName').value = s.name;
   sheetMin = s.min; $('sheetMin').textContent = sheetMin;
   $('sheetDel').classList.toggle('hidden', i < 0);
@@ -363,7 +362,7 @@ function ring() {
   $('armedView').classList.add('hidden');
   $('ringView').classList.remove('hidden');
   $('snoozeBtn').classList.toggle('hidden', !settings.snooze);
-  $('snoozeBtn').textContent = `${settings.snooze} Min. schlummern (fehlen dann in der Routine)`;
+  $('snoozeBtn').textContent = `+${settings.snooze} min`;
   playMelody(settings.sound, settings.fadeSec);
   if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
 }
@@ -393,7 +392,7 @@ function tickAlarm(now) {
     $('dawn').style.opacity = (p * p).toFixed(3); // langsam beginnend, dann heller
   }
   const h = Math.floor(left / 3600000), m = Math.ceil((left % 3600000) / 60000);
-  $('armedIn').textContent = left > 0 ? `in ${h} h ${m} min` : '';
+  $('armedIn').textContent = left > 0 ? `${h} h ${m} min` : '';
   if (left <= 0) ring();
 }
 
@@ -473,11 +472,11 @@ function renderRun(now) {
   if (!run) return;
   const s = run.steps[run.idx], next = run.steps[run.idx + 1];
   const e = elapsed(now), remMs = run.dur - e;
-  $('runStepNo').textContent = `Schritt ${run.idx + 1} von ${run.steps.length}` + (run.paused ? ' · pausiert' : '');
+  $('runStepNo').textContent = `${run.idx + 1}/${run.steps.length}` + (run.paused ? ' · Pause' : '');
   $('runName').textContent = s.name;
   $('runRemaining').textContent = fmtMMSS(remMs / 1000);
   $('runBar').style.strokeDashoffset = (553 * (e / run.dur)).toFixed(1);
-  $('runNext').textContent = next ? `Danach: ${next.name} (${next.min} Min.)` : 'Danach: aus dem Haus!';
+  $('runNext').textContent = next ? `→ ${next.name}` : '→ Los!';
   const restMs = run.steps.slice(run.idx + 1).reduce((a, x) => a + x.min * 60000, 0);
   const est = now + remMs + restMs;
   const late = est - run.plannedLeave > 30000;
@@ -487,7 +486,7 @@ function renderRun(now) {
   estEl.className = late ? 'late' : 'ok';
   $('runBar').classList.toggle('late', late);
   $('runRemaining').classList.toggle('late', late);
-  $('runPause').textContent = run.paused ? 'Weiter' : 'Pause';
+  $('runPause').textContent = run.paused ? '▶' : '❚❚';
 }
 
 $('startNow').addEventListener('click', () => {
