@@ -22,7 +22,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, palette: 'morgenroete', preset: 'standard',
+  autoRoutine: true, speechOn: true, voiceURI: '', rate: 1, palette: 'morgenroete', preset: 'standard',
   collapsed: {}
 };
 
@@ -165,11 +165,27 @@ function chime() {
 
 /* ---------- Sprache ---------- */
 let voice = null;
-function pickVoice() {
-  const vs = speechSynthesis.getVoices();
-  voice = vs.find(v => v.lang === 'de-CH') || vs.find(v => v.lang === 'de-DE') || vs.find(v => v.lang.startsWith('de')) || null;
+function germanVoices() {
+  const order = l => l === 'de-CH' ? 0 : l === 'de-DE' ? 1 : 2;
+  return speechSynthesis.getVoices().filter(v => v.lang.toLowerCase().startsWith('de'))
+    .sort((a, b) => order(a.lang) - order(b.lang) || a.name.localeCompare(b.name));
 }
-if ('speechSynthesis' in window) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function pickVoice() {
+  const vs = germanVoices();
+  voice = vs.find(v => v.voiceURI === settings.voiceURI) || vs[0] || null;
+  renderVoices();
+}
+const LANG_NAME = { 'de-CH': 'Schweiz', 'de-DE': 'Deutschland', 'de-AT': 'Österreich' };
+function renderVoices() {
+  const sel = document.getElementById('voiceSel'); if (!sel) return;
+  const vs = germanVoices();
+  sel.innerHTML = vs.length
+    ? vs.map(v => `<option value="${v.voiceURI.replace(/"/g, '&quot;')}">${v.name.replace(/</g, '&lt;')} (${LANG_NAME[v.lang] || v.lang})</option>`).join('')
+    : '<option value="">Keine deutsche Stimme gefunden</option>';
+  sel.value = voice ? voice.voiceURI : '';
+  sel.disabled = !vs.length;
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = pickVoice;
 
 function say(text) {
   if (!settings.speechOn) return;
@@ -179,8 +195,8 @@ function say(text) {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = voice ? voice.lang : 'de-DE';
-    if (voice) u.voice = voice;
-    u.rate = 1; u.volume = 1;
+    try { if (voice) u.voice = voice; } catch { /* Stimme nicht verfügbar: Standardstimme */ }
+    u.rate = settings.rate || 1; u.volume = 1;
     speechSynthesis.speak(u);
   }, 450);
 }
@@ -228,7 +244,8 @@ document.querySelectorAll('.seg[data-key]').forEach(seg => {
   seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     settings[key] = num ? Number(b.dataset.v) : b.dataset.v;
-    if (key !== 'mode') settings.preset = 'custom';
+    if (['fadeSec', 'dawnMin', 'snooze'].includes(key)) settings.preset = 'custom';
+    if (key === 'rate') sampleVoice();
     saveSettings();
   });
 });
@@ -322,6 +339,15 @@ document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', 
   store.set('settings', settings);
   renderSections();
 }));
+
+/* ---------- Stimme ---------- */
+function sampleVoice() { say('Halbzeit: Duschen. Noch zwei Minuten und dreissig Sekunden.'); }
+$('voiceSel').addEventListener('change', e => {
+  settings.voiceURI = e.target.value;
+  store.set('settings', settings);
+  pickVoice();
+  sampleVoice();
+});
 
 function renderAll() { renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
@@ -624,6 +650,7 @@ setInterval(tick, 250);
 
 applyPalette();
 renderAll();
+if ('speechSynthesis' in window) pickVoice();
 tick();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
