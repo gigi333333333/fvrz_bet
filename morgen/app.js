@@ -465,7 +465,7 @@ function renderSummary() {
   $('sumWake').classList.toggle('hidden', !leaveFix);
   $('wakeTime').classList.toggle('hidden', leaveFix);
   $('leaveTime').classList.toggle('hidden', !leaveFix);
-  $('sumLeave').classList.toggle('hidden', leaveFix);
+  $('leaveBar').classList.toggle('locked', !leaveFix);
   $('sumWake').textContent = fromMin(wakeMin());
   $('sumLeave').textContent = fromMin(leaveMin());
   $('sumTotal').textContent = totalMin() + ' Min';
@@ -529,6 +529,10 @@ $('voiceSel').addEventListener('change', e => {
   pickVoice();
   sampleVoice();
 });
+
+// Am Computer öffnet ein Klick auf das Zeitfeld sonst nicht die Auswahl
+$('leaveTime').addEventListener('click', e => { try { e.currentTarget.showPicker(); } catch { /* Handy öffnet selbst */ } });
+$('leaveTime').addEventListener('input', e => { if (e.target.value) $('sumLeave').textContent = e.target.value; });
 
 function renderAll() { document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
