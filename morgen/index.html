@@ -20,6 +20,13 @@
         <h1>Wecker</h1>
       </header>
 
+      <div class="mode-switch" id="modeSwitch" role="radiogroup" aria-label="Weckmodus">
+        <span class="mode-thumb" aria-hidden="true"></span>
+        <button type="button" data-lock="0" role="radio">Normal</button>
+        <button type="button" data-lock="1" role="radio">🔒 Locked in</button>
+      </div>
+      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.</p>
+
       <div class="hero">
         <div class="seg" data-key="mode">
           <button data-v="leave">Aus dem Haus fix</button>
@@ -66,7 +73,6 @@
       </div>
 
       <ul class="group">
-        <li class="row lock-row"><span>🔒 Locked in<span class="sub">Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.</span></span><label class="switch"><input type="checkbox" id="lockedIn"><i></i></label></li>
         <li class="row"><span>Routine danach starten</span><label class="switch"><input type="checkbox" id="autoRoutine"><i></i></label></li>
       </ul>
       </div></div>

@@ -159,6 +159,7 @@ const EN = {
   'Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.':
     'Harsh voice with swearing. The alarm only stops after you’ve done 15 push-ups.',
   'Liegestütz zählen': 'Count push-up',
+  'Weckmodus': 'Alarm mode',
   'Handy auf den Boden unter dein Gesicht. Bei jedem Liegestütz unten mit der Nase tippen.':
     'Put the phone on the floor under your face. Tap it with your nose at the bottom of every push-up.',
   'Notfall: 5 Sekunden gedrückt halten': 'Emergency: hold for 5 seconds',

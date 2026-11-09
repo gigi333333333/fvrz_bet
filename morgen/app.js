@@ -449,7 +449,7 @@ function renderSegs() {
 }
 
 // Felder & Schalter
-[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn'], ['lockedIn', 'lockedIn']].forEach(([id, key]) => {
+[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn']].forEach(([id, key]) => {
   const el = $(id);
   if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
   el.addEventListener('change', () => { settings[key] = el.type === 'checkbox' ? el.checked : el.value; saveSettings(); });
@@ -553,7 +553,57 @@ $('voiceSel').addEventListener('change', e => {
 $('leaveTime').addEventListener('click', e => { try { e.currentTarget.showPicker(); } catch { /* Handy öffnet selbst */ } });
 $('leaveTime').addEventListener('input', e => { if (e.target.value) $('sumLeave').textContent = e.target.value; });
 
-function renderAll() { document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+/* ---------- Umschalter Normal / Locked in ---------- */
+const modeSw = $('modeSwitch');
+function renderMode() {
+  const on = !!settings.lockedIn;
+  modeSw.classList.toggle('locked', on);
+  modeSw.style.removeProperty('--drag');
+  modeSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String((b.dataset.lock === '1') === on)));
+  $('modeHint').classList.toggle('show', on);
+  document.querySelector('.hero').classList.toggle('locked', on);
+}
+function setLocked(on) {
+  if (!!settings.lockedIn === on) { renderMode(); return; }
+  settings.lockedIn = on;
+  store.set('settings', settings);
+  if (navigator.vibrate) navigator.vibrate(15);
+  renderMode();
+  renderSections();
+}
+// Tippen oder den Regler mit dem Finger hinüberschieben
+let modeDrag = null;
+modeSw.addEventListener('pointerdown', e => {
+  modeDrag = { x0: e.clientX, w: modeSw.clientWidth, moved: false };
+  modeSw.setPointerCapture(e.pointerId);
+});
+modeSw.addEventListener('pointermove', e => {
+  if (!modeDrag) return;
+  const dx = e.clientX - modeDrag.x0;
+  if (Math.abs(dx) > 6) modeDrag.moved = true;
+  if (!modeDrag.moved) return;
+  const start = settings.lockedIn ? 1 : 0;
+  const pos = Math.min(1, Math.max(0, start + dx / (modeDrag.w / 2)));
+  modeSw.classList.add('dragging');
+  modeSw.style.setProperty('--drag', pos);
+});
+function endModeDrag(e) {
+  if (!modeDrag) return;
+  modeSw.classList.remove('dragging');
+  if (modeDrag.moved) {
+    const pos = parseFloat(modeSw.style.getPropertyValue('--drag'));
+    setLocked(pos > 0.5);
+  } else {
+    // einfaches Tippen auf eine Seite
+    const rect = modeSw.getBoundingClientRect();
+    setLocked(e.clientX > rect.left + rect.width / 2);
+  }
+  modeDrag = null;
+}
+modeSw.addEventListener('pointerup', endModeDrag);
+modeSw.addEventListener('pointercancel', () => { modeDrag = null; modeSw.classList.remove('dragging'); renderMode(); });
+
+function renderAll() { renderMode(); document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {
