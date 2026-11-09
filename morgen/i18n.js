@@ -213,6 +213,22 @@ const EN = {
   'Standort abgelehnt. Ort in den Einstellungen wählen.': 'Location denied. Choose a place in Settings.',
   'Standort wird gesucht …': 'Finding location …',
 
+  'Der Standort ist im Browser blockiert. So erlaubst du ihn wieder:': 'Location is blocked in your browser. Here’s how to allow it again:',
+  'iPhone:': 'iPhone:',
+  'In Safari links in der Adressleiste auf': 'In Safari, tap',
+  '„aA“': '“aA”',
+  'Website-Einstellungen': 'Website Settings',
+  'Standort': 'Location',
+  'Erlauben': 'Allow',
+  'Falls das nicht hilft:': 'If that doesn’t help:',
+  'Einstellungen → Datenschutz & Sicherheit → Ortungsdienste → Safari-Websites': 'Settings → Privacy & Security → Location Services → Safari Websites',
+  'Beim Verwenden der App': 'While Using the App',
+  'Android:': 'Android:',
+  'In Chrome auf das Symbol links neben der Adresse': 'In Chrome, tap the icon left of the address',
+  'Berechtigungen': 'Permissions',
+  'Zulassen': 'Allow',
+  'Danach die Seite neu laden und den Schalter wieder einschalten.': 'Then reload the page and turn the switch back on.',
+
   // Schlafenszeit
   'Erinnerung': 'Reminder',
   '30 Minuten vorher und zur Schlafenszeit, solange die App offen ist.': '30 minutes before and at bedtime, while the app is open.',

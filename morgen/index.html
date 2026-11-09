@@ -142,6 +142,14 @@
       <ul class="group">
         <li class="row"><span>Ort</span><strong id="wxPlace" class="muted-val">–</strong></li>
         <li class="row"><span>Standort verwenden</span><label class="switch"><input type="checkbox" id="wxAuto"><i></i></label></li>
+        <!-- erscheint, wenn der Browser den Standort blockiert -->
+        <li class="row col hidden" id="wxDenied">
+          <p class="denied-title">Der Standort ist im Browser blockiert. So erlaubst du ihn wieder:</p>
+          <p class="denied-step"><strong>iPhone:</strong> In Safari links in der Adressleiste auf <strong>„aA“</strong> → <strong>Website-Einstellungen</strong> → <strong>Standort</strong> → <strong>Erlauben</strong>.</p>
+          <p class="denied-step">Falls das nicht hilft: <strong>Einstellungen → Datenschutz & Sicherheit → Ortungsdienste → Safari-Websites</strong> → <strong>Beim Verwenden der App</strong>.</p>
+          <p class="denied-step"><strong>Android:</strong> In Chrome auf das Symbol links neben der Adresse → <strong>Berechtigungen</strong> → <strong>Standort</strong> → <strong>Zulassen</strong>.</p>
+          <p class="denied-step">Danach die Seite neu laden und den Schalter wieder einschalten.</p>
+        </li>
         <!-- nur ohne Standort: Ort von Hand suchen -->
         <li class="row col hidden" id="wxManual">
           <form id="wxSearch" class="wx-search"><input id="wxQuery" class="text-in" placeholder="Ort suchen, z. B. Zürich" autocomplete="off"><button class="btn primary">Suchen</button></form>
