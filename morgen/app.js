@@ -1250,3 +1250,152 @@ if ('speechSynthesis' in window) pickVoice();
 tick();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+
+
+/* ---------- Konto & Synchronisierung (Supabase, ohne Bibliothek) ---------- */
+// Öffentliche Projekt-Adresse und Publishable Key (dürfen im Browser stehen; die Daten schützt Row Level Security)
+const SB_URL = 'https://imehrjzjwcdnkvwavgro.supabase.co';
+const SB_KEY = 'sb_publishable_vHhDEDEQ00nvUlRUd5z9tA_ggPfPw3V';
+let session = store.get('session', null);   // { access_token, refresh_token, expires_at, user: { id, email } }
+
+async function sb(path, { method = 'GET', body, auth = true, headers = {} } = {}) {
+  const h = { apikey: SB_KEY, 'Content-Type': 'application/json', ...headers };
+  if (auth && session) {
+    if (session.expires_at && Date.now() / 1000 > session.expires_at - 60) await refreshSession();
+    if (session) h.Authorization = 'Bearer ' + session.access_token;
+  }
+  const r = await fetch(SB_URL + path, { method, headers: h, body: body ? JSON.stringify(body) : undefined });
+  const text = await r.text();
+  let json = null; try { json = text ? JSON.parse(text) : null; } catch { /* kein JSON */ }
+  if (!r.ok) { const e = new Error((json && (json.msg || json.error_description || json.message || json.error)) || r.status); e.status = r.status; e.code = json && (json.error_code || json.code); throw e; }
+  return json;
+}
+function setSession(j) {
+  if (!j || !j.access_token) return;
+  session = { access_token: j.access_token, refresh_token: j.refresh_token, expires_at: j.expires_at || Math.floor(Date.now() / 1000) + (j.expires_in || 3600), user: { id: j.user.id, email: j.user.email } };
+  store.set('session', session);
+}
+async function refreshSession() {
+  try {
+    const j = await sb('/auth/v1/token?grant_type=refresh_token', { method: 'POST', auth: false, body: { refresh_token: session.refresh_token } });
+    setSession(j);
+  } catch (e) { if (e.status === 400 || e.status === 401) { session = null; store.set('session', null); renderAccount(); } throw e; }
+}
+
+// Lokale Änderungen merken und gebündelt hochladen
+const SYNC_KEYS = ['settings', 'steps', 'streak'];
+const rawSet = store.set;
+store.set = (key, value) => {
+  rawSet(key, value);
+  if (SYNC_KEYS.includes(key)) { rawSet('localAt', Date.now()); queueSync(); }
+};
+let syncTimer = null, lastSync = store.get('lastSync', 0);
+function queueSync() {
+  if (!session) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(pushProfile, 2000);
+}
+function syncPayload() {
+  // Gerätespezifisches (Stimme) bleibt lokal
+  const { voiceURI, ...rest } = settings;
+  return { settings: rest, steps, streak: streakDays };
+}
+async function pushProfile() {
+  if (!session) return;
+  try {
+    await sb('/rest/v1/profiles', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: { id: session.user.id, name: settings.name || null, data: syncPayload(), updated_at: new Date().toISOString() } });
+    lastSync = Date.now(); rawSet('lastSync', lastSync);
+  } catch { $('authSync').textContent = t('offline, wird nachgeholt'); return; }
+  renderAccount();
+}
+// Daten vom Server übernehmen; Streak-Tage werden zusammengeführt
+function applyRemote(data) {
+  if (data.settings) settings = Object.assign({}, settings, data.settings, { voiceURI: settings.voiceURI });
+  if (Array.isArray(data.steps) && data.steps.length) steps = data.steps;
+  if (data.streak) {
+    const rank = { done: 3, fail: 2, pending: 1 };
+    for (const [k, v] of Object.entries(data.streak)) if (!streakDays[k] || rank[v] > rank[streakDays[k]]) streakDays[k] = v;
+  }
+  rawSet('settings', settings); rawSet('steps', steps); rawSet('streak', streakDays);
+  LANG = settings.lang || LANG;
+  $('nameInput').value = settings.name || '';
+  setLang(LANG);
+}
+async function pullProfile() {
+  if (!session) return;
+  try {
+    const rows = await sb(`/rest/v1/profiles?id=eq.${session.user.id}&select=data,updated_at`);
+    const row = rows && rows[0];
+    const localAt = store.get('localAt', 0);
+    if (row && row.data && Object.keys(row.data).length && new Date(row.updated_at).getTime() > localAt) {
+      applyRemote(row.data);
+      lastSync = Date.now(); rawSet('lastSync', lastSync); rawSet('localAt', lastSync);
+      renderAccount();
+    } else {
+      await pushProfile();
+    }
+  } catch { renderAccount(); }
+}
+
+function authError(e) {
+  if (e instanceof TypeError) return t('Keine Verbindung zum Server.');
+  const m = String(e.message || '').toLowerCase();
+  if (e.code === 'invalid_credentials' || m.includes('invalid login')) return t('E-Mail oder Passwort falsch.');
+  if (e.code === 'email_not_confirmed' || m.includes('not confirmed')) return t('Bitte bestätige zuerst den Link in deiner E-Mail.');
+  if (e.code === 'user_already_exists' || m.includes('already registered')) return t('Für diese E-Mail gibt es schon ein Konto.');
+  return t('Fehler: {msg}', { msg: e.message });
+}
+function authInput() {
+  const email = $('authEmail').value.trim(), password = $('authPass').value;
+  if (!email || password.length < 6) { $('authMsg').textContent = t('Bitte E-Mail und Passwort (mind. 6 Zeichen) eingeben.'); return null; }
+  $('authMsg').textContent = t('Bitte warten …');
+  return { email, password };
+}
+$('authForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const c = authInput(); if (!c) return;
+  try {
+    setSession(await sb('/auth/v1/token?grant_type=password', { method: 'POST', auth: false, body: c }));
+    $('authMsg').textContent = ''; $('authPass').value = '';
+    renderAccount();
+    await pullProfile();
+  } catch (err) { $('authMsg').textContent = authError(err); }
+});
+$('authSignup').addEventListener('click', async () => {
+  const c = authInput(); if (!c) return;
+  try {
+    const redirect = location.origin + location.pathname;
+    const j = await sb('/auth/v1/signup?redirect_to=' + encodeURIComponent(redirect), { method: 'POST', auth: false, body: { ...c, data: { name: settings.name } } });
+    if (j && j.access_token) { setSession(j); $('authMsg').textContent = ''; renderAccount(); await pushProfile(); }
+    else $('authMsg').textContent = t('Konto erstellt. Bestätige jetzt den Link in der E-Mail an {email} und melde dich dann an.', { email: c.email });
+    $('authPass').value = '';
+  } catch (err) { $('authMsg').textContent = authError(err); }
+});
+$('authLogout').addEventListener('click', async () => {
+  try { await sb('/auth/v1/logout', { method: 'POST' }); } catch { /* trotzdem lokal abmelden */ }
+  session = null; rawSet('session', null);
+  renderAccount();
+});
+function renderAccount() {
+  const on = !!session;
+  $('authForm').classList.toggle('hidden', on);
+  $('authBox').classList.toggle('hidden', !on);
+  if (!on) return;
+  $('authWho').textContent = session.user.email;
+  $('authSync').textContent = lastSync ? (Date.now() - lastSync < 60000 ? t('gerade eben') : fmtClock(new Date(lastSync))) : '–';
+}
+// Nach dem Bestätigungs-Link kommt Supabase mit den Schlüsseln im Adress-Anker zurück
+(function readAuthRedirect() {
+  if (!location.hash.includes('access_token=')) return;
+  const q = new URLSearchParams(location.hash.slice(1));
+  const access_token = q.get('access_token');
+  try {
+    const payload = JSON.parse(atob(access_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    setSession({ access_token, refresh_token: q.get('refresh_token'), expires_at: Number(q.get('expires_at')) || payload.exp, user: { id: payload.sub, email: payload.email } });
+  } catch { /* ungültig */ }
+  history.replaceState(null, '', location.pathname + location.search);
+})();
+renderAccount();
+pullProfile();
+window.addEventListener('online', () => queueSync());

@@ -376,3 +376,13 @@ body.speech-off .speech-opt { display: none !important; }
 .toast span { flex: 1; }
 .toast button { border: 0; background: var(--bg); color: var(--muted); width: 32px; height: 32px; border-radius: 50%; }
 [data-palette="mono"] .switch input:checked + i { background: var(--accent); }
+
+/* Konto */
+.auth-form { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
+.text-in.wide { width: 100%; text-align: left; padding: 13px 16px; }
+.auth-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.auth-btns .btn.ghost { margin-top: 0; }
+.auth-msg { margin: 0; font-size: .85rem; color: var(--muted); min-height: 1em; }
+.auth-msg:empty { display: none; }
+.danger-txt { color: var(--late); font-weight: 600; }
+.wx-search .text-in { min-width: 0; } .wx-search .btn { flex: none; }

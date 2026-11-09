@@ -214,6 +214,25 @@ const EN = {
   'Zeit fürs Bett! {h} Schlaf bis {time}.': 'Time for bed! {h} of sleep until {time}.',
   'Schliessen': 'Close',
 
+  // Konto
+  'Passwort (mind. 6 Zeichen)': 'Password (min. 6 characters)',
+  'Anmelden': 'Sign in',
+  'Angemeldet als': 'Signed in as',
+  'Synchronisiert': 'Synced',
+  'Abmelden': 'Sign out',
+  'Mit einem Konto sind Routine, Einstellungen und Streak auf all deinen Geräten gleich. Eigene Aufnahmen bleiben auf dem Gerät.':
+    'With an account, your routine, settings and streak are the same on all your devices. Your own recordings stay on the device.',
+  'Bitte E-Mail und Passwort (mind. 6 Zeichen) eingeben.': 'Please enter email and password (min. 6 characters).',
+  'Konto erstellt. Bestätige jetzt den Link in der E-Mail an {email} und melde dich dann an.': 'Account created. Confirm the link in the email to {email}, then sign in.',
+  'E-Mail oder Passwort falsch.': 'Wrong email or password.',
+  'Bitte bestätige zuerst den Link in deiner E-Mail.': 'Please confirm the link in your email first.',
+  'Für diese E-Mail gibt es schon ein Konto.': 'An account with this email already exists.',
+  'Keine Verbindung zum Server.': 'No connection to the server.',
+  'Fehler: {msg}': 'Error: {msg}',
+  'Bitte warten …': 'Please wait …',
+  'gerade eben': 'just now',
+  'offline, wird nachgeholt': 'offline, will retry',
+
   // Willkommen
   'Willkommen bei Routinely': 'Welcome to Routinely',
   'Wie heisst du?': 'What’s your name?',

@@ -154,11 +154,23 @@
       </div>
 
       <h2 class="group-title">Konto</h2>
-      <ul class="group">
-        <li class="row disabled"><span>E-Mail</span><span class="badge">Bald</span></li>
-        <li class="row disabled"><span>Konto erstellen</span><span class="badge">Bald</span></li>
+      <!-- abgemeldet -->
+      <form id="authForm" class="group pad auth-form">
+        <input id="authEmail" class="text-in wide" type="email" placeholder="E-Mail" autocomplete="email" required>
+        <input id="authPass" class="text-in wide" type="password" placeholder="Passwort (mind. 6 Zeichen)" autocomplete="current-password" minlength="6" required>
+        <div class="auth-btns">
+          <button type="button" class="btn ghost" id="authSignup">Konto erstellen</button>
+          <button class="btn primary" id="authLogin">Anmelden</button>
+        </div>
+        <p class="auth-msg" id="authMsg"></p>
+      </form>
+      <!-- angemeldet -->
+      <ul class="group hidden" id="authBox">
+        <li class="row"><span>Angemeldet als</span><strong id="authWho" class="muted-val"></strong></li>
+        <li class="row"><span>Synchronisiert</span><strong id="authSync" class="muted-val">–</strong></li>
+        <li class="row tap" id="authLogout"><span class="danger-txt">Abmelden</span></li>
       </ul>
-      <p class="footnote">Mit einem Konto kannst du später Routine und Einstellungen auf mehreren Geräten nutzen.</p>
+      <p class="footnote">Mit einem Konto sind Routine, Einstellungen und Streak auf all deinen Geräten gleich. Eigene Aufnahmen bleiben auf dem Gerät.</p>
 
       <h2 class="group-title">Farben <span class="title-sub" id="paletteMode"></span></h2>
       <ul class="group" id="palettes"></ul>
