@@ -340,3 +340,49 @@ body.speech-off .speech-opt { display: none !important; }
 .popup-tag { color: var(--text) !important; font-weight: 800; font-size: 1.15rem !important; font-style: italic; margin: 16px 0 20px !important; }
 .popup-btns { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; }
 .popup-btns .btn.ghost { margin-top: 0; }
+.title-sub { font-weight: 600; color: var(--muted); font-size: .9rem; }
+/* Farbwechsel beim Umschalten weich */
+.hero, .tabbar, .group, .mode-switch, .btn.primary { transition: background-color .35s, color .35s; }
+
+/* Info-Karten: Streak & Wetter */
+.info-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.info-card { display: flex; align-items: center; gap: 14px; width: 100%; border: 0; text-align: left; background: var(--surface); color: var(--text); border-radius: 24px; padding: 14px 18px; font: inherit; cursor: pointer; }
+.ic-ico { font-size: 1.8rem; width: 48px; height: 48px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; flex: none; }
+.ic-main { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.ic-main strong { font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.ic-main span { color: var(--muted); font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ic-side { font-size: .8rem; font-weight: 600; color: var(--primary); text-align: right; max-width: 42%; }
+.streak-card .ic-ico { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+
+/* Ins Bett: 5 Optionen */
+.bubbles.five { grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
+.bubbles.five .bubble { border: 0; color: var(--text); font: inherit; cursor: pointer; padding: 0; }
+.bubbles.five .bubble strong { font-size: clamp(.85rem, 3.6vw, 1.05rem); }
+.bubbles.five .bubble span { font-size: .72rem; }
+.bubbles.five .bubble.rec { color: var(--on-primary); }
+
+/* Wetter-Ort */
+.wx-search { display: flex; gap: 8px; }
+.wx-search .text-in { flex: 1; width: auto; text-align: left; }
+.wx-search .btn { padding: 9px 16px; }
+.wx-results { list-style: none; margin: 0; padding: 0; }
+.wx-hit { padding: 10px 6px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.wx-hit:last-child { border-bottom: 0; }
+.muted-val { color: var(--muted); font-weight: 600; }
+#wxGeo { margin-top: 0; }
+
+/* Erinnerungs-Banner */
+.toast { position: fixed; left: 16px; right: 16px; top: calc(14px + env(safe-area-inset-top)); z-index: 95; max-width: 488px; margin: 0 auto; display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-radius: 22px; background: var(--surface); color: var(--text); box-shadow: 0 12px 40px rgba(0,0,0,.4); font-weight: 600; animation: pop .25s ease; }
+.toast span { flex: 1; }
+.toast button { border: 0; background: var(--bg); color: var(--muted); width: 32px; height: 32px; border-radius: 50%; }
+[data-palette="mono"] .switch input:checked + i { background: var(--accent); }
+
+/* Konto */
+.auth-form { display: flex; flex-direction: column; gap: 10px; padding-top: 16px; }
+.text-in.wide { width: 100%; text-align: left; padding: 13px 16px; }
+.auth-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.auth-btns .btn.ghost { margin-top: 0; }
+.auth-msg { margin: 0; font-size: .85rem; color: var(--muted); min-height: 1em; }
+.auth-msg:empty { display: none; }
+.danger-txt { color: var(--late); font-weight: 600; }
+.wx-search .text-in { min-width: 0; } .wx-search .btn { flex: none; }

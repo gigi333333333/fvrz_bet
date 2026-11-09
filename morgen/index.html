@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="de" data-palette="morgenroete">
+<html lang="de" data-palette="nachtblau">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#14151F">
+  <meta name="theme-color" content="#0B0E22">
   <title>Routinely</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -25,7 +25,7 @@
         <button type="button" data-lock="0" role="radio">Normal</button>
         <button type="button" data-lock="1" role="radio">🔒 Locked in</button>
       </div>
-      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.</p>
+      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus nach <span class="push-n">15</span> Liegestützen.</p>
 
       <div class="hero">
         <div class="seg" data-key="mode">
@@ -44,6 +44,19 @@
         <div class="timeline" id="timeline" aria-hidden="true"></div>
         <p class="hero-meta" id="sumTotal"></p>
         <button id="arm" class="btn primary block">Aktivieren</button>
+      </div>
+
+      <div class="info-cards">
+        <div class="info-card streak-card hidden" id="streakCard">
+          <span class="ic-ico">🔥</span>
+          <span class="ic-main"><strong id="streakNum">0</strong><span id="streakLbl">Tage Streak</span></span>
+          <span class="ic-side" id="streakNext"></span>
+        </div>
+        <button class="info-card weather-card" id="weatherCard" type="button">
+          <span class="ic-ico" id="wxIco">🌤️</span>
+          <span class="ic-main"><strong id="wxTemp">–</strong><span id="wxText">Wetter: Ort wählen</span></span>
+          <span class="ic-side" id="wxTip"></span>
+        </button>
       </div>
 
       <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Wecken</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
@@ -79,7 +92,10 @@
 
       <button class="sec-head" data-sec="bett" aria-expanded="true"><span class="sec-title">Ins Bett</span><span class="sec-peek" id="peek-bett"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
       <div class="sec-body" id="sec-bett"><div class="sec-inner">
-      <div class="bubbles" id="bedtimes"></div>
+      <div class="bubbles five" id="bedtimes"></div>
+      <ul class="group">
+        <li class="row"><span>Erinnerung<span class="sub">30 Minuten vorher und zur Schlafenszeit, solange die App offen ist.</span></span><label class="switch"><input type="checkbox" id="bedRemind"><i></i></label></li>
+      </ul>
       </div></div>
     </section>
 
@@ -122,19 +138,41 @@
         <li class="row"><span>Name</span><input id="nameInput" class="text-in" maxlength="30" placeholder="Dein Name" autocomplete="given-name"></li>
       </ul>
 
+      <h2 class="group-title">Wetter</h2>
+      <ul class="group">
+        <li class="row"><span>Ort</span><strong id="wxPlace" class="muted-val">–</strong></li>
+        <li class="row col">
+          <form id="wxSearch" class="wx-search"><input id="wxQuery" class="text-in" placeholder="Ort suchen, z. B. Zürich" autocomplete="off"><button class="btn primary">Suchen</button></form>
+          <ul id="wxResults" class="wx-results"></ul>
+          <button type="button" class="btn ghost" id="wxGeo">📍 Aktuellen Standort verwenden</button>
+        </li>
+      </ul>
+
       <h2 class="group-title">Sprache</h2>
       <div class="seg lang-seg" data-key="lang">
         <button data-v="de">Deutsch</button><button data-v="en">English</button>
       </div>
 
       <h2 class="group-title">Konto</h2>
-      <ul class="group">
-        <li class="row disabled"><span>E-Mail</span><span class="badge">Bald</span></li>
-        <li class="row disabled"><span>Konto erstellen</span><span class="badge">Bald</span></li>
+      <!-- abgemeldet -->
+      <form id="authForm" class="group pad auth-form">
+        <input id="authEmail" class="text-in wide" type="email" placeholder="E-Mail" autocomplete="email" required>
+        <input id="authPass" class="text-in wide" type="password" placeholder="Passwort (mind. 6 Zeichen)" autocomplete="current-password" minlength="6" required>
+        <div class="auth-btns">
+          <button type="button" class="btn ghost" id="authSignup">Konto erstellen</button>
+          <button class="btn primary" id="authLogin">Anmelden</button>
+        </div>
+        <p class="auth-msg" id="authMsg"></p>
+      </form>
+      <!-- angemeldet -->
+      <ul class="group hidden" id="authBox">
+        <li class="row"><span>Angemeldet als</span><strong id="authWho" class="muted-val"></strong></li>
+        <li class="row"><span>Synchronisiert</span><strong id="authSync" class="muted-val">–</strong></li>
+        <li class="row tap" id="authLogout"><span class="danger-txt">Abmelden</span></li>
       </ul>
-      <p class="footnote">Mit einem Konto kannst du später Routine und Einstellungen auf mehreren Geräten nutzen.</p>
+      <p class="footnote">Mit einem Konto sind Routine, Einstellungen und Streak auf all deinen Geräten gleich. Eigene Aufnahmen bleiben auf dem Gerät.</p>
 
-      <h2 class="group-title">Farben</h2>
+      <h2 class="group-title">Farben <span class="title-sub" id="paletteMode"></span></h2>
       <ul class="group" id="palettes"></ul>
 
       <h2 class="group-title">Wissen</h2>
@@ -177,12 +215,15 @@
     </form>
   </dialog>
 
+  <div id="toast" class="toast hidden" role="status"><span id="toastText"></span><button type="button" id="toastClose" aria-label="Schliessen">✕</button></div>
+
   <!-- Bestätigung Locked in -->
   <dialog id="lockDialog" class="popup">
     <form method="dialog">
       <div class="popup-ico" aria-hidden="true">🔒</div>
       <h2>Locked in</h2>
-      <p>Der Wecker geht erst aus, wenn du <strong>15 Liegestütze</strong> gemacht hast. Kein Aus-Knopf, kein Schlummern.</p>
+      <p>Der Wecker geht erst aus nach <strong><span class="push-n">15</span> Liegestützen</strong>. Kein Aus-Knopf, kein Schlummern.</p>
+      <p>Mit jeder Woche Streak kommt ein Liegestütz dazu.</p>
       <p>Die Stimme flucht und schreit dich an, im Stil von David Goggins.</p>
       <p class="popup-tag">Win the morning, win the day.</p>
       <div class="popup-btns">
