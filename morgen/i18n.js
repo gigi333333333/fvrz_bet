@@ -160,6 +160,11 @@ const EN = {
     'Harsh voice with swearing. The alarm only stops after you’ve done 15 push-ups.',
   'Liegestütz zählen': 'Count push-up',
   'Weckmodus': 'Alarm mode',
+  'Der Wecker geht erst aus, wenn du': 'The alarm won’t stop until you’ve done',
+  '15 Liegestütze': '15 push-ups',
+  'gemacht hast. Kein Aus-Knopf, kein Schlummern.': '— no off button, no snooze.',
+  'Die Stimme flucht und schreit dich an, im Stil von David Goggins.': 'The voice swears and yells at you, David Goggins style.',
+  'Ich bin dabei': 'I’m in',
   'Handy auf den Boden unter dein Gesicht. Bei jedem Liegestütz unten mit der Nase tippen.':
     'Put the phone on the floor under your face. Tap it with your nose at the bottom of every push-up.',
   'Notfall: 5 Sekunden gedrückt halten': 'Emergency: hold for 5 seconds',
