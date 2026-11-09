@@ -30,7 +30,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, sleepGoal: 9, bedRemind: true, wxLoc: null, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, sleepGoal: 9, bedRemind: true, wxLoc: null, wxAuto: true, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
   collapsed: {}
 };
 
@@ -460,7 +460,7 @@ function renderSegs() {
 }
 
 // Felder & Schalter
-[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn'], ['bedRemind', 'bedRemind']].forEach(([id, key]) => {
+[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn'], ['bedRemind', 'bedRemind'], ['wxAuto', 'wxAuto']].forEach(([id, key]) => {
   const el = $(id);
   if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
   el.addEventListener('change', () => { settings[key] = el.type === 'checkbox' ? el.checked : el.value; saveSettings(); });
@@ -740,8 +740,9 @@ function weatherOutlook() {
 }
 function renderWeather() {
   $('wxPlace').textContent = settings.wxLoc ? settings.wxLoc.name : '–';
+  $('wxManual').classList.toggle('hidden', !!settings.wxAuto);
   const o = weatherOutlook();
-  if (!settings.wxLoc) { $('wxIco').textContent = '🌤️'; $('wxTemp').textContent = '–'; $('wxText').textContent = t('Wetter: Ort wählen'); $('wxTip').textContent = ''; return; }
+  if (!settings.wxLoc) { $('wxIco').textContent = '🌤️'; $('wxTemp').textContent = '–'; $('wxText').textContent = t(settings.wxAuto ? 'Wetter: tippen für Standort' : 'Wetter: Ort wählen'); $('wxTip').textContent = ''; return; }
   if (!o) return;
   $('wxIco').textContent = WX_ICON(o.code);
   $('wxTemp').textContent = o.temp + '°';
@@ -764,6 +765,7 @@ function setWxLoc(loc) {
   refreshWeather(true);
 }
 $('weatherCard').addEventListener('click', () => {
+  if (settings.wxAuto) { locate(true); return; }
   if (settings.wxLoc) { refreshWeather(true); return; }
   document.querySelector('.tabbar [data-tab=mehr]').click();
   setTimeout(() => $('wxQuery').focus(), 200);
@@ -785,12 +787,47 @@ $('wxSearch').addEventListener('submit', async e => {
     });
   } catch { $('wxResults').innerHTML = `<li class="muted-val">${t('Wetter nicht erreichbar.')}</li>`; }
 });
-$('wxGeo').addEventListener('click', () => {
-  if (!navigator.geolocation) { alert(t('Standort nicht verfügbar.')); return; }
-  navigator.geolocation.getCurrentPosition(
-    pos => setWxLoc({ name: t('Mein Standort'), lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) }),
-    () => alert(t('Standort nicht verfügbar.')), { timeout: 10000 });
-});
+// Standort: Koordinaten auf ca. 1 km runden, Ortsname über BigDataCloud (kostenlos, ohne Schlüssel)
+const round2 = x => Math.round(x * 100) / 100;
+async function placeName(lat, lon) {
+  try {
+    const r = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=${LANG}`);
+    const j = await r.json();
+    return j.city || j.locality || j.principalSubdivision || '';
+  } catch { return ''; }
+}
+function locate(interactive) {
+  if (!navigator.geolocation) { if (interactive) alert(t('Standort nicht verfügbar.')); return; }
+  if (interactive && !settings.wxLoc) $('wxText').textContent = t('Standort wird gesucht …');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const lat = round2(pos.coords.latitude), lon = round2(pos.coords.longitude);
+    const old = settings.wxLoc;
+    // Nur neu benennen und laden, wenn sich der Ort verändert hat
+    if (old && old.auto && Math.abs(old.lat - lat) < 0.02 && Math.abs(old.lon - lon) < 0.02) { refreshWeather(interactive); return; }
+    const name = (await placeName(lat, lon)) || t('Mein Standort');
+    setWxLoc({ name, lat, lon, auto: true });
+  }, err => {
+    if (err.code === 1) {            // abgelehnt: auf Suche von Hand umstellen
+      settings.wxAuto = false; $('wxAuto').checked = false;
+      store.set('settings', settings);
+      renderWeather();
+      if (interactive) $('wxText').textContent = t('Standort abgelehnt. Ort in den Einstellungen wählen.');
+    } else if (interactive) alert(t('Standort nicht verfügbar.'));
+  }, { timeout: 15000, maximumAge: interactive ? 0 : 30 * 60000 });   // beim Antippen immer frisch
+}
+$('wxAuto').addEventListener('change', () => { if (settings.wxAuto) locate(true); });
+// Beim Öffnen still aktualisieren, aber nur wenn der Standort schon erlaubt ist (keine ungefragte Abfrage)
+async function autoLocate() {
+  if (!settings.wxAuto) return;
+  try {
+    if (navigator.permissions) {
+      const st = await navigator.permissions.query({ name: 'geolocation' });
+      if (st.state === 'granted') locate(false);
+      return;
+    }
+  } catch { /* Browser kennt die Abfrage nicht */ }
+  if (settings.wxLoc && settings.wxLoc.auto) locate(false);
+}
 
 function renderAll() { renderMode(); document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
@@ -1234,6 +1271,7 @@ $('onboardForm').addEventListener('submit', e => {
   setName(n);
   if (!settings.lang) setLang(LANG);
   $('onboard').classList.add('hidden');
+  if (settings.wxAuto && !settings.wxLoc) locate(true);   // im Antippen fragen, damit das Handy die Abfrage zeigt
 });
 
 LANG = settings.lang || ((navigator.language || 'de').toLowerCase().startsWith('de') ? 'de' : 'en');
@@ -1245,6 +1283,7 @@ applyPalette();
 renderAll();
 translateStatic();
 refreshWeather();
+autoLocate();
 loadClips();
 if ('speechSynthesis' in window) pickVoice();
 tick();

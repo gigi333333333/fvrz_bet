@@ -207,6 +207,12 @@ const EN = {
   'Ab {time} Uhr {p} Prozent Regen.': 'From {time}, {p} percent chance of rain.',
   '{tip}.': '{tip}.',
 
+  'Standort verwenden': 'Use location',
+  '📍 Danach fragt die App nach deinem Standort, für das Wetter am Morgen.': '📍 Next, the app asks for your location, for the morning weather.',
+  'Wetter: tippen für Standort': 'Weather: tap to use location',
+  'Standort abgelehnt. Ort in den Einstellungen wählen.': 'Location denied. Choose a place in Settings.',
+  'Standort wird gesucht …': 'Finding location …',
+
   // Schlafenszeit
   'Erinnerung': 'Reminder',
   '30 Minuten vorher und zur Schlafenszeit, solange die App offen ist.': '30 minutes before and at bedtime, while the app is open.',
