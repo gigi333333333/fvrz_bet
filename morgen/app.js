@@ -30,7 +30,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, sleepGoal: 9, bedRemind: true, wxLoc: null, wxAuto: true, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, sleepGoal: 9, bedRemind: true, wxLoc: null, wxAuto: true, wxDenied: false, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
   collapsed: {}
 };
 
@@ -741,6 +741,7 @@ function weatherOutlook() {
 function renderWeather() {
   $('wxPlace').textContent = settings.wxLoc ? settings.wxLoc.name : '–';
   $('wxManual').classList.toggle('hidden', !!settings.wxAuto);
+  $('wxDenied').classList.toggle('hidden', !settings.wxDenied);
   const o = weatherOutlook();
   if (!settings.wxLoc) { $('wxIco').textContent = '🌤️'; $('wxTemp').textContent = '–'; $('wxText').textContent = t(settings.wxAuto ? 'Wetter: tippen für Standort' : 'Wetter: Ort wählen'); $('wxTip').textContent = ''; return; }
   if (!o) return;
@@ -803,12 +804,15 @@ function locate(interactive) {
     const lat = round2(pos.coords.latitude), lon = round2(pos.coords.longitude);
     const old = settings.wxLoc;
     // Nur neu benennen und laden, wenn sich der Ort verändert hat
+    if (settings.wxDenied) { settings.wxDenied = false; store.set('settings', settings); renderWeather(); }
     if (old && old.auto && Math.abs(old.lat - lat) < 0.02 && Math.abs(old.lon - lon) < 0.02) { refreshWeather(interactive); return; }
     const name = (await placeName(lat, lon)) || t('Mein Standort');
+    settings.wxDenied = false;
     setWxLoc({ name, lat, lon, auto: true });
   }, err => {
-    if (err.code === 1) {            // abgelehnt: auf Suche von Hand umstellen
+    if (err.code === 1) {            // abgelehnt: auf Suche von Hand umstellen und erklären, wie man es wieder erlaubt
       settings.wxAuto = false; $('wxAuto').checked = false;
+      settings.wxDenied = true;
       store.set('settings', settings);
       renderWeather();
       if (interactive) $('wxText').textContent = t('Standort abgelehnt. Ort in den Einstellungen wählen.');

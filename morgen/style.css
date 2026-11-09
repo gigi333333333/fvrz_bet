@@ -386,3 +386,9 @@ body.speech-off .speech-opt { display: none !important; }
 .auth-msg:empty { display: none; }
 .danger-txt { color: var(--late); font-weight: 600; }
 .wx-search .text-in { min-width: 0; } .wx-search .btn { flex: none; }
+
+/* Hinweis: Standort blockiert */
+#wxDenied { background: color-mix(in srgb, var(--late) 10%, transparent); gap: 6px; }
+.denied-title { margin: 0 0 4px; font-weight: 700; font-size: .92rem; }
+.denied-step { margin: 0; font-size: .85rem; color: var(--muted); line-height: 1.45; }
+.denied-step strong { color: var(--text); font-weight: 600; }
