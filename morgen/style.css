@@ -191,3 +191,16 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
 .bubble.rec span { color: inherit; opacity: .75; }
 .sheet-actions { grid-template-columns: 58px 1fr; }
 .ico { width: 24px; height: 24px; fill: none; stroke: var(--muted); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Aufsteh-Presets */
+.presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.preset { border: 0; background: var(--surface); border-radius: 28px; padding: 16px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: .9rem; font-weight: 600; transition: background .15s, color .15s, transform .1s; }
+.preset .p-ico { width: 48px; height: 48px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font-size: 1.4rem; }
+.preset.wide { grid-column: span 2; flex-direction: row; justify-content: center; gap: 12px; }
+.preset.on { background: var(--primary); color: var(--on-primary); }
+.preset.on .p-ico { background: rgba(255,255,255,.25); }
+.preset:active { transform: scale(.97); }
+.preset-sum { color: var(--muted); font-size: .82rem; text-align: center; margin: 12px 0 16px; }
+.preset-sum:empty { display: none; }
+#customBox { margin-top: 12px; }
+#customBox .group { margin-bottom: 12px; }

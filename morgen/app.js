@@ -22,7 +22,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, palette: 'morgenroete'
+  autoRoutine: true, speechOn: true, palette: 'morgenroete', preset: 'standard'
 };
 
 let steps = store.get('steps', DEFAULT_STEPS);
@@ -227,6 +227,7 @@ document.querySelectorAll('.seg[data-key]').forEach(seg => {
   seg.addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
     settings[key] = num ? Number(b.dataset.v) : b.dataset.v;
+    if (key !== 'mode') settings.preset = 'custom';
     saveSettings();
   });
 });
@@ -257,7 +258,7 @@ $('soundList').addEventListener('click', e => {
   const play = e.target.closest('[data-play]');
   if (play) { playMelody(play.dataset.play, 1.5, 5); return; }
   const li = e.target.closest('li'); if (!li) return;
-  settings.sound = li.dataset.id; saveSettings();
+  settings.sound = li.dataset.id; settings.preset = 'custom'; saveSettings();
 });
 
 function renderSummary() {
@@ -275,7 +276,32 @@ function renderSummary() {
   $('routineMeta').textContent = `${totalMin()} Min`;
 }
 
-function renderAll() { renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+/* ---------- Aufsteh-Presets ---------- */
+const PRESETS = [
+  { id: 'sanft', icon: '🌙', name: 'Sanft', set: { sound: 'birds', fadeSec: 120, dawnMin: 30, snooze: 0 } },
+  { id: 'standard', icon: '🌅', name: 'Standard', set: { sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0 } },
+  { id: 'tief', icon: '⚡', name: 'Tiefschläfer', set: { sound: 'pulse', fadeSec: 30, dawnMin: 20, snooze: 5 } },
+  { id: 'winter', icon: '❄️', name: 'Winter', set: { sound: 'sunrise', fadeSec: 60, dawnMin: 30, snooze: 0 } }
+];
+const FADE_TXT = { 30: '30 s', 60: '1 min', 120: '2 min' };
+function renderPresets() {
+  $('presets').innerHTML = PRESETS.map(p => `
+    <button class="preset ${settings.preset === p.id ? 'on' : ''}" data-id="${p.id}"><span class="p-ico">${p.icon}</span><span>${p.name}</span></button>`).join('') +
+    `<button class="preset wide ${settings.preset === 'custom' ? 'on' : ''}" data-id="custom"><span class="p-ico">🎚️</span><span>Individuell</span></button>`;
+  const custom = settings.preset === 'custom';
+  $('customBox').classList.toggle('hidden', !custom);
+  $('presetSum').textContent = custom ? '' :
+    `${SOUND_NAMES[settings.sound][0]} · ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
+}
+$('presets').addEventListener('click', e => {
+  const b = e.target.closest('.preset'); if (!b) return;
+  const p = PRESETS.find(x => x.id === b.dataset.id);
+  settings.preset = b.dataset.id;
+  if (p) Object.assign(settings, p.set);
+  saveSettings();
+});
+
+function renderAll() { renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {
