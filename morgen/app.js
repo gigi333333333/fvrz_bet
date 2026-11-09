@@ -190,6 +190,9 @@ if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = pickVoice;
 function say(text) {
   if (!settings.speechOn) return;
   chime();
+  speak(text);
+}
+function speak(text) {
   if (!('speechSynthesis' in window)) return;
   setTimeout(() => {
     speechSynthesis.cancel();
@@ -200,6 +203,128 @@ function say(text) {
     speechSynthesis.speak(u);
   }, 450);
 }
+// Eigene Aufnahme abspielen, sonst Computerstimme
+function announce(kind, text) {
+  if (!settings.speechOn) return;
+  chime();
+  if (!clips[kind]) { speak(text); return; }
+  playClip(kind, 0.45).then(ok => { if (!ok) speak(text); });
+}
+
+/* ---------- Eigene Aufnahmen ---------- */
+const CLIP_DEFS = [
+  { id: 'half', name: 'Halbzeit' },
+  { id: 'one', name: 'Noch 1 Minute' },
+  { id: 'leave', name: 'Zeit, aus dem Haus zu gehen' }
+];
+const clips = {};          // id -> { blob, buf }
+let rec = null;            // laufende Aufnahme
+let micFailed = !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder);
+
+const clipStore = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((res, rej) => {
+    const r = indexedDB.open('morgenplan', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('clips');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  }));
+  const run = async (mode, fn) => {
+    const db = await open();
+    return new Promise((res, rej) => {
+      const t = db.transaction('clips', mode);
+      const req = fn(t.objectStore('clips'));
+      t.oncomplete = () => res(req && req.result);
+      t.onerror = () => rej(t.error);
+    });
+  };
+  return {
+    get: k => run('readonly', st => st.get(k)).catch(() => null),
+    set: (k, v) => run('readwrite', st => st.put(v, k)).catch(() => {}),
+    del: k => run('readwrite', st => st.delete(k)).catch(() => {})
+  };
+})();
+
+async function loadClips() {
+  for (const d of CLIP_DEFS) { const b = await clipStore.get(d.id); if (b) clips[d.id] = { blob: b }; }
+  renderClips();
+}
+async function saveClip(id, blob) {
+  clips[id] = { blob };
+  await clipStore.set(id, blob);
+  renderClips();
+}
+async function deleteClip(id) {
+  delete clips[id];
+  await clipStore.del(id);
+  renderClips();
+}
+async function playClip(id, delay = 0) {
+  const c = clips[id]; if (!c) return false;
+  audio();
+  try { if (!c.buf) c.buf = await ctx.decodeAudioData(await c.blob.arrayBuffer()); }
+  catch { return false; }
+  const src = ctx.createBufferSource();
+  src.buffer = c.buf;
+  src.connect(ctx.destination);
+  src.start(ctx.currentTime + delay);
+  return true;
+}
+async function startRec(id) {
+  let stream;
+  try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch { micFailed = true; renderClips(); return; }
+  const mr = new MediaRecorder(stream), chunks = [];
+  mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  mr.onstop = () => {
+    stream.getTracks().forEach(t => t.stop());
+    clearInterval(rec.tick); clearTimeout(rec.limit);
+    rec = null;
+    if (chunks.length) saveClip(id, new Blob(chunks, { type: mr.mimeType || 'audio/webm' })); else renderClips();
+  };
+  mr.start();
+  rec = { id, mr, t0: Date.now() };
+  rec.limit = setTimeout(() => mr.state !== 'inactive' && mr.stop(), 8000); // max. 8 Sekunden
+  rec.tick = setInterval(renderClips, 250);
+  renderClips();
+}
+function stopRec() { if (rec && rec.mr.state !== 'inactive') rec.mr.stop(); }
+
+const ICON = {
+  mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>',
+  stop: '<svg viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" class="fill"/></svg>',
+  play: '<svg viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z" class="fill"/></svg>',
+  del: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 12h8l1-12"/></svg>',
+  file: '<svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7zM14 3v4h4"/></svg>'
+};
+function renderClips() {
+  const list = document.getElementById('clips'); if (!list) return;
+  list.innerHTML = CLIP_DEFS.map(d => {
+    const has = !!clips[d.id], recording = rec && rec.id === d.id;
+    const status = recording ? `Aufnahme läuft · ${Math.floor((Date.now() - rec.t0) / 1000)} s` : has ? 'Eigene Aufnahme' : 'Computerstimme';
+    const main = micFailed
+      ? `<label class="ibtn" aria-label="Audiodatei wählen">${ICON.file}<input type="file" accept="audio/*" data-file="${d.id}" hidden></label>`
+      : `<button class="ibtn ${recording ? 'rec' : ''}" data-rec="${d.id}" aria-label="${recording ? 'Stopp' : 'Aufnehmen'}">${recording ? ICON.stop : ICON.mic}</button>`;
+    return `<li class="row clip ${has ? 'has' : ''}">
+      <span class="grow">${d.name}<span class="sub">${status}</span></span>
+      ${has && !recording ? `<button class="ibtn ghost" data-del="${d.id}" aria-label="Löschen">${ICON.del}</button><button class="ibtn ghost" data-play="${d.id}" aria-label="Anhören">${ICON.play}</button>` : ''}
+      ${main}</li>`;
+  }).join('');
+  const hint = document.getElementById('clipHint');
+  if (hint) hint.textContent = micFailed
+    ? 'Das Mikrofon ist hier nicht verfügbar. Nimm die Sätze mit der Sprachmemo-App auf und wähle die Datei hier aus.'
+    : 'Tippe aufs Mikrofon, sprich den Satz und tippe auf Stopp. Ohne Aufnahme spricht die Computerstimme.';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#clips [data-rec], #clips [data-play], #clips [data-del]'); if (!b) return;
+  if (b.dataset.rec) { if (rec) stopRec(); else startRec(b.dataset.rec); }
+  else if (b.dataset.play) { chime(); playClip(b.dataset.play, 0.45); }
+  else if (b.dataset.del && confirm('Aufnahme löschen?')) deleteClip(b.dataset.del);
+});
+document.addEventListener('change', e => {
+  const inp = e.target.closest('#clips [data-file]'); if (!inp || !inp.files[0]) return;
+  saveClip(inp.dataset.file, inp.files[0]);
+});
 
 /* ---------- Bildschirm wach halten ---------- */
 let wakeLock = null;
@@ -533,7 +658,7 @@ function startRoutine(plannedLeave) {
     paused: null
   };
   $('runView').classList.remove('hidden');
-  lockScreen();
+  lockScreen().then(() => $('runWarn').classList.toggle('hidden', !!wakeLock));
   goToStep(0, now);
 }
 
@@ -555,7 +680,8 @@ function goToStep(i, now, announce = true) {
 
 function finishRoutine() {
   const late = Date.now() - run.plannedLeave;
-  say(late > 60000 ? `Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.` : 'Zeit, aus dem Haus zu gehen. Schönen Tag!');
+  if (late > 60000) say(`Fertig. Los geht's, du bist ${Math.round(late / 60000)} Minuten spät dran.`);
+  else announce('leave', 'Zeit, aus dem Haus zu gehen. Schönen Tag!');
   run = null;
   stopKeepAlive(); unlockScreen();
   $('runView').classList.add('hidden');
@@ -582,11 +708,11 @@ function tickRun(now) {
   const e = elapsed(now), rem = (run.dur - e) / 1000;
   if (!run.saidHalf && e >= run.dur / 2) {
     run.saidHalf = true;
-    if (e - run.dur / 2 < 20000) say(`Halbzeit: ${s.name}. Noch ${spokenDuration(Math.round(rem / 5) * 5)}.`);
+    if (e - run.dur / 2 < 20000) announce('half', `Halbzeit: ${s.name}. Noch ${spokenDuration(Math.round(rem / 5) * 5)}.`);
   }
   if (!run.saidOne && rem <= 60) {
     run.saidOne = true;
-    if (rem > 40) say(`${s.name}: noch eine Minute.`);
+    if (rem > 40) announce('one', `${s.name}: noch eine Minute.`);
   }
   renderRun(now);
 }
@@ -599,7 +725,9 @@ function renderRun(now) {
   $('runName').textContent = s.name;
   $('runRemaining').textContent = fmtMMSS(remMs / 1000);
   $('runBar').style.strokeDashoffset = (553 * (e / run.dur)).toFixed(1);
-  $('runNext').textContent = next ? `→ ${next.name}` : '→ Los!';
+  const soon = !run.paused && remMs <= 5000 ? ` in ${Math.max(1, Math.ceil(remMs / 1000))}` : '';
+  $('runNext').textContent = next ? `→ ${next.name}${soon}` : `→ Aus dem Haus${soon}`;
+  $('runNext').classList.toggle('soon', !!soon);
   const restMs = run.steps.slice(run.idx + 1).reduce((a, x) => a + x.min * 60000, 0);
   const est = now + remMs + restMs;
   const late = est - run.plannedLeave > 30000;
@@ -650,6 +778,7 @@ setInterval(tick, 250);
 
 applyPalette();
 renderAll();
+loadClips();
 if ('speechSynthesis' in window) pickVoice();
 tick();
 

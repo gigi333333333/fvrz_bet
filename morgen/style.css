@@ -247,3 +247,15 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
   background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
 .row.col { flex-direction: column; align-items: stretch; gap: 8px; padding-top: 12px; padding-bottom: 14px; }
+
+/* Eigene Aufnahmen */
+.ibtn { flex: none; width: 40px; height: 40px; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); cursor: pointer; }
+.ibtn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.ibtn svg .fill { fill: currentColor; stroke: none; }
+.ibtn.ghost { background: var(--bg); color: var(--text); }
+.ibtn.rec { background: var(--late); color: #fff; animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px color-mix(in srgb, var(--late) 25%, transparent); } }
+.clip { gap: 8px; }
+.clip.has .sub { color: var(--ok); }
+.next.soon { color: var(--primary); font-weight: 600; }
+.warn { background: color-mix(in srgb, var(--late) 15%, transparent); color: var(--text); border-radius: 18px; padding: 10px 14px; font-size: .85rem; margin: -6px 0 14px; }

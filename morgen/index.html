@@ -96,6 +96,10 @@
         <li class="row tap" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
       </ul>
 
+      <h2 class="group-title">Eigene Stimme</h2>
+      <ul class="group" id="clips"></ul>
+      <p class="footnote" id="clipHint"></p>
+
       <button id="startNow" class="btn primary block">Jetzt starten</button>
     </section>
 
@@ -179,13 +183,14 @@
         <div class="remaining" id="runRemaining">0:00</div>
       </div>
       <p id="runNext" class="next"></p>
+      <p id="runWarn" class="warn hidden">Bildschirm bleibt nicht von selbst an. Stell die automatische Sperre aus, sonst pausieren Timer und Durchsagen.</p>
       <div class="leave-info">
         <div><span>Aus dem Haus · Plan</span><strong id="runLeavePlan">--:--</strong></div>
         <div><span>Aus dem Haus · jetzt</span><strong id="runLeaveEst">--:--</strong></div>
       </div>
       <div class="run-btns">
         <button id="runPause" class="btn ghost round" aria-label="Pause">❚❚</button>
-        <button id="runDone" class="btn primary">Fertig</button>
+        <button id="runDone" class="btn primary">Weiter ›</button>
       </div>
       <button id="runStop" class="btn link">Abbrechen</button>
     </div>
