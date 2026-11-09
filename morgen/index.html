@@ -25,7 +25,7 @@
         <button type="button" data-lock="0" role="radio">Normal</button>
         <button type="button" data-lock="1" role="radio">🔒 Locked in</button>
       </div>
-      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus, wenn du 15 Liegestütze gemacht hast.</p>
+      <p class="mode-hint" id="modeHint">Harte Stimme mit Flüchen. Der Wecker geht erst aus nach <span class="push-n">15</span> Liegestützen.</p>
 
       <div class="hero">
         <div class="seg" data-key="mode">
@@ -44,6 +44,19 @@
         <div class="timeline" id="timeline" aria-hidden="true"></div>
         <p class="hero-meta" id="sumTotal"></p>
         <button id="arm" class="btn primary block">Aktivieren</button>
+      </div>
+
+      <div class="info-cards">
+        <div class="info-card streak-card hidden" id="streakCard">
+          <span class="ic-ico">🔥</span>
+          <span class="ic-main"><strong id="streakNum">0</strong><span id="streakLbl">Tage Streak</span></span>
+          <span class="ic-side" id="streakNext"></span>
+        </div>
+        <button class="info-card weather-card" id="weatherCard" type="button">
+          <span class="ic-ico" id="wxIco">🌤️</span>
+          <span class="ic-main"><strong id="wxTemp">–</strong><span id="wxText">Wetter: Ort wählen</span></span>
+          <span class="ic-side" id="wxTip"></span>
+        </button>
       </div>
 
       <button class="sec-head" data-sec="aufstehen" aria-expanded="true"><span class="sec-title">Wecken</span><span class="sec-peek" id="peek-aufstehen"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
@@ -79,7 +92,10 @@
 
       <button class="sec-head" data-sec="bett" aria-expanded="true"><span class="sec-title">Ins Bett</span><span class="sec-peek" id="peek-bett"></span><span class="chev-btn"><svg class="chev-ico" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></button>
       <div class="sec-body" id="sec-bett"><div class="sec-inner">
-      <div class="bubbles" id="bedtimes"></div>
+      <div class="bubbles five" id="bedtimes"></div>
+      <ul class="group">
+        <li class="row"><span>Erinnerung<span class="sub">30 Minuten vorher und zur Schlafenszeit, solange die App offen ist.</span></span><label class="switch"><input type="checkbox" id="bedRemind"><i></i></label></li>
+      </ul>
       </div></div>
     </section>
 
@@ -120,6 +136,16 @@
       <h2 class="group-title">Profil</h2>
       <ul class="group">
         <li class="row"><span>Name</span><input id="nameInput" class="text-in" maxlength="30" placeholder="Dein Name" autocomplete="given-name"></li>
+      </ul>
+
+      <h2 class="group-title">Wetter</h2>
+      <ul class="group">
+        <li class="row"><span>Ort</span><strong id="wxPlace" class="muted-val">–</strong></li>
+        <li class="row col">
+          <form id="wxSearch" class="wx-search"><input id="wxQuery" class="text-in" placeholder="Ort suchen, z. B. Zürich" autocomplete="off"><button class="btn primary">Suchen</button></form>
+          <ul id="wxResults" class="wx-results"></ul>
+          <button type="button" class="btn ghost" id="wxGeo">📍 Aktuellen Standort verwenden</button>
+        </li>
       </ul>
 
       <h2 class="group-title">Sprache</h2>
@@ -177,12 +203,15 @@
     </form>
   </dialog>
 
+  <div id="toast" class="toast hidden" role="status"><span id="toastText"></span><button type="button" id="toastClose" aria-label="Schliessen">✕</button></div>
+
   <!-- Bestätigung Locked in -->
   <dialog id="lockDialog" class="popup">
     <form method="dialog">
       <div class="popup-ico" aria-hidden="true">🔒</div>
       <h2>Locked in</h2>
-      <p>Der Wecker geht erst aus, wenn du <strong>15 Liegestütze</strong> gemacht hast. Kein Aus-Knopf, kein Schlummern.</p>
+      <p>Der Wecker geht erst aus nach <strong><span class="push-n">15</span> Liegestützen</strong>. Kein Aus-Knopf, kein Schlummern.</p>
+      <p>Mit jeder Woche Streak kommt ein Liegestütz dazu.</p>
       <p>Die Stimme flucht und schreit dich an, im Stil von David Goggins.</p>
       <p class="popup-tag">Win the morning, win the day.</p>
       <div class="popup-btns">

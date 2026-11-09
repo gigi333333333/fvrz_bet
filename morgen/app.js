@@ -30,7 +30,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
+  autoRoutine: true, speechOn: true, lang: '', name: '', lockedIn: false, sleepGoal: 9, bedRemind: true, wxLoc: null, voiceURI: '', rate: 1, palette: 'nachtblau', paletteLocked: 'mono', preset: 'standard',
   collapsed: {}
 };
 
@@ -460,7 +460,7 @@ function renderSegs() {
 }
 
 // Felder & Schalter
-[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn']].forEach(([id, key]) => {
+[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn'], ['bedRemind', 'bedRemind']].forEach(([id, key]) => {
   const el = $(id);
   if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
   el.addEventListener('change', () => { settings[key] = el.type === 'checkbox' ? el.checked : el.value; saveSettings(); });
@@ -495,8 +495,10 @@ function renderSummary() {
   $('sumTotal').textContent = t('{n} Min Routine', { n: totalMin() });
   $('timeline').innerHTML = steps.map(s => `<i style="flex:${s.min}"></i>`).join('');
   const w = wakeMin();
-  $('bedtimes').innerHTML = [6, 5, 4].map((c, i) =>
-    `<div class="bubble ${i === 0 ? 'rec' : ''}"><strong>${fromMin(w - c * 90 - 15)}</strong><span>${(c * 1.5).toString().replace('.', ',')} h</span></div>`).join('');
+  $('bedtimes').innerHTML = SLEEP_GOALS.map(h =>
+    `<button type="button" class="bubble ${settings.sleepGoal === h ? 'rec' : ''}" data-h="${h}"><strong>${fromMin(w - h * 60 - 15)}</strong><span>${fmtHours(h)}</span></button>`).join('');
+  renderStreak();
+  renderWeather();
   const d = new Date();
   const date = d.toLocaleDateString(LANG === 'en' ? 'en-GB' : 'de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
   $('today').textContent = settings.name ? t('Hallo {name}', { name: settings.name }) + ' · ' + date : date;
@@ -543,7 +545,7 @@ function renderSections() {
   });
   const p = PRESETS.find(x => x.id === settings.preset);
   $('peek-aufstehen').textContent = (settings.lockedIn ? '🔒 ' : '') + (p ? p.icon + ' ' + t(p.name) : '🎚️ ' + t('Individuell'));
-  $('peek-bett').textContent = fromMin(wakeMin() - 6 * 90 - 15);
+  $('peek-bett').textContent = fromMin(wakeMin() - settings.sleepGoal * 60 - 15) + ' · ' + fmtHours(settings.sleepGoal);
 }
 document.querySelectorAll('.sec-head').forEach(h => h.addEventListener('click', () => {
   settings.collapsed = { ...settings.collapsed, [h.dataset.sec]: !settings.collapsed[h.dataset.sec] };
@@ -573,6 +575,7 @@ function renderMode() {
   modeSw.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String((b.dataset.lock === '1') === on)));
   $('modeHint').classList.toggle('show', on);
   document.querySelector('.hero').classList.toggle('locked', on);
+  renderStreak();
 }
 function setLocked(on, confirmed = false) {
   if (!!settings.lockedIn === on) { renderMode(); return; }
@@ -623,6 +626,171 @@ function endModeDrag(e) {
 }
 modeSw.addEventListener('pointerup', endModeDrag);
 modeSw.addEventListener('pointercancel', () => { modeDrag = null; modeSw.classList.remove('dragging'); renderMode(); });
+
+/* ---------- Schlafenszeit ---------- */
+const SLEEP_GOALS = [9, 8.5, 8, 7.5, 7];
+const fmtHours = h => (LANG === 'de' ? String(h).replace('.', ',') : String(h)) + ' h';
+$('bedtimes').addEventListener('click', e => {
+  const b = e.target.closest('[data-h]'); if (!b) return;
+  settings.sleepGoal = Number(b.dataset.h);
+  saveSettings();
+});
+$('bedRemind').addEventListener('change', () => {
+  // Systembenachrichtigung nur auf Wunsch anfragen
+  if (settings.bedRemind && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission().catch(() => {});
+});
+function nextBedtime(now) {
+  // Schlafenszeit vor dem nächsten Aufstehen
+  const wake = alarm.armed ? new Date(alarm.target) : nextOccurrence(((wakeMin() % 1440) + 1440) % 1440);
+  return wake.getTime() - (settings.sleepGoal * 60 + 15) * 60000;
+}
+let bedNoted = store.get('bedNoted', '');
+function tickBedtime(now) {
+  if (!settings.bedRemind || alarm.ringing || run) return;
+  const bed = nextBedtime(now), bedStr = fmtClock(new Date(bed));
+  const h = fmtHours(settings.sleepGoal);
+  const wakeStr = fmtClock(new Date(bed + (settings.sleepGoal * 60 + 15) * 60000));
+  const note = (key, text) => {
+    if (bedNoted === key) return;
+    bedNoted = key; store.set('bedNoted', key);
+    showToast('🌙 ' + text);
+    chime(); speak(text, 450);
+    try { if ('Notification' in window && Notification.permission === 'granted') new Notification('Routinely', { body: text, icon: 'icon.svg' }); } catch { /* nicht unterstützt */ }
+  };
+  if (now >= bed - 30 * 60000 && now < bed - 29 * 60000) note(bed + ':30', t('In 30 Minuten ins Bett ({time}) für {h} Schlaf.', { time: bedStr, h }));
+  if (now >= bed && now < bed + 60000) note(bed + ':0', t('Zeit fürs Bett! {h} Schlaf bis {time}.', { h, time: wakeStr }));
+}
+let toastTimer = null;
+function showToast(text) {
+  $('toastText').textContent = text;
+  $('toast').classList.remove('hidden');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => $('toast').classList.add('hidden'), 60000);
+}
+$('toastClose').addEventListener('click', () => $('toast').classList.add('hidden'));
+
+/* ---------- Streak & Liegestütze ---------- */
+// Pro Tag: 'done' (Liegestütze geschafft), 'fail' (Notfall-Aus), 'pending' (Wecker lief, noch offen).
+// Tage ohne Locked-in-Wecker sind Ruhetage und unterbrechen die Streak nicht.
+const dayKey = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+let streakDays = store.get('streak', {});
+(function resolveOld() {
+  const today = dayKey();
+  let changed = false;
+  for (const k in streakDays) if (k < today && streakDays[k] === 'pending') { streakDays[k] = 'fail'; changed = true; }
+  if (changed) store.set('streak', streakDays);
+})();
+const dayStatus = () => streakDays[dayKey()];
+function markDay(status) {
+  streakDays[dayKey()] = status;
+  store.set('streak', streakDays);
+  if (typeof queueSync === 'function') queueSync();
+  renderStreak();
+}
+function streakCount() {
+  let n = 0;
+  for (const k of Object.keys(streakDays).sort().reverse()) {
+    const v = streakDays[k];
+    if (v === 'fail') break;
+    if (v === 'done') n++;
+  }
+  return n;
+}
+const pushTarget = () => BASE_PUSHUPS + Math.floor(streakCount() / 7);
+function renderStreak() {
+  const n = streakCount(), target = pushTarget(), toNext = 7 - (n % 7);
+  document.querySelectorAll('.push-n').forEach(el => { el.textContent = target; });
+  $('streakCard').classList.toggle('hidden', !settings.lockedIn && n === 0);
+  $('streakNum').textContent = n;
+  $('streakLbl').textContent = t(n === 1 ? 'Tag Streak' : 'Tage Streak');
+  $('streakNext').textContent = t('heute {n} Liegestütze', { n: target }) + ' · ' + t('in {d} T.: {n}', { d: toNext, n: target + 1 });
+}
+
+/* ---------- Wetter (Open-Meteo, ohne Schlüssel) ---------- */
+let wx = store.get('weather', null);   // { at, lat, lon, hourly }
+const WX_ICON = c => c === 0 ? '☀️' : c <= 2 ? '🌤️' : c === 3 ? '☁️' : c <= 48 ? '🌫️' : c <= 57 ? '🌦️' : c <= 67 ? '🌧️' : c <= 77 ? '🌨️' : c <= 82 ? '🌧️' : c <= 86 ? '🌨️' : '⛈️';
+const isSnow = c => (c >= 71 && c <= 77) || c === 85 || c === 86;
+async function refreshWeather(force = false) {
+  const loc = settings.wxLoc; if (!loc) return;
+  if (!force && wx && wx.lat === loc.lat && wx.lon === loc.lon && Date.now() - wx.at < 3600000) return;
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}&hourly=temperature_2m,precipitation_probability,weather_code&timezone=auto&forecast_days=3`;
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json();
+    wx = { at: Date.now(), lat: loc.lat, lon: loc.lon, hourly: j.hourly };
+    store.set('weather', wx);
+  } catch { if (!wx) $('wxText').textContent = t('Wetter nicht erreichbar.'); return; }
+  renderWeather();
+}
+// Wetter für den nächsten Morgen: Temperatur beim Losgehen, Regen danach bis 18 Uhr
+function weatherOutlook() {
+  if (!wx || !wx.hourly || !settings.wxLoc) return null;
+  const leave = nextOccurrence(((leaveMin() % 1440) + 1440) % 1440);
+  const H = wx.hourly, key = d => `${dayKey(d)}T${pad(d.getHours())}:00`;
+  const i0 = H.time.indexOf(key(leave)); if (i0 < 0) return null;
+  const temp = Math.round(H.temperature_2m[i0]), code = H.weather_code[i0];
+  let rain = null;
+  for (let i = i0; i < H.time.length && Number(H.time[i].slice(11, 13)) <= 18 && H.time[i].slice(0, 10) === H.time[i0].slice(0, 10); i++) {
+    if ((H.precipitation_probability[i] ?? 0) >= 50) { rain = { p: H.precipitation_probability[i], time: H.time[i].slice(11, 16) }; break; }
+  }
+  const snow = H.weather_code.slice(i0, i0 + 10).some(isSnow);
+  const tip = snow ? t('Vorsicht, Schnee') : rain ? t('Schirm mitnehmen') : temp <= 3 ? t('Warm anziehen') : temp <= 12 ? t('Jacke mitnehmen') : temp >= 25 ? t('Leicht anziehen') : '';
+  return { temp, code, rain, tip, time: fmtClock(leave) };
+}
+function renderWeather() {
+  $('wxPlace').textContent = settings.wxLoc ? settings.wxLoc.name : '–';
+  const o = weatherOutlook();
+  if (!settings.wxLoc) { $('wxIco').textContent = '🌤️'; $('wxTemp').textContent = '–'; $('wxText').textContent = t('Wetter: Ort wählen'); $('wxTip').textContent = ''; return; }
+  if (!o) return;
+  $('wxIco').textContent = WX_ICON(o.code);
+  $('wxTemp').textContent = o.temp + '°';
+  $('wxText').textContent = settings.wxLoc.name + ' · ' + (o.rain ? t('Regen {p} % ab {time}', o.rain) : t('trocken'));
+  $('wxTip').textContent = o.tip;
+}
+function weatherSpeech() {
+  const o = weatherOutlook(); if (!o) return '';
+  let s = t('Draussen {temp} Grad.', { temp: o.temp }) + ' ';
+  if (o.rain) s += t('Ab {time} Uhr {p} Prozent Regen.', { time: o.rain.time, p: o.rain.p }) + ' ';
+  if (o.tip) s += t('{tip}.', { tip: o.tip }) + ' ';
+  return s;
+}
+function setWxLoc(loc) {
+  settings.wxLoc = loc;
+  store.set('settings', settings);
+  $('wxResults').innerHTML = '';
+  $('wxQuery').value = '';
+  renderWeather();
+  refreshWeather(true);
+}
+$('weatherCard').addEventListener('click', () => {
+  if (settings.wxLoc) { refreshWeather(true); return; }
+  document.querySelector('.tabbar [data-tab=mehr]').click();
+  setTimeout(() => $('wxQuery').focus(), 200);
+});
+$('wxSearch').addEventListener('submit', async e => {
+  e.preventDefault();
+  const q = $('wxQuery').value.trim(); if (!q) return;
+  try {
+    const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=5&language=${LANG}`);
+    const j = await r.json();
+    const res = j.results || [];
+    $('wxResults').innerHTML = res.length ? '' : `<li class="muted-val">${t('Nichts gefunden.')}</li>`;
+    res.forEach(x => {
+      const li = document.createElement('li');
+      li.className = 'wx-hit';
+      li.textContent = [x.name, x.admin1, x.country].filter(Boolean).join(', ');
+      li.addEventListener('click', () => setWxLoc({ name: x.name, lat: +x.latitude.toFixed(3), lon: +x.longitude.toFixed(3) }));
+      $('wxResults').appendChild(li);
+    });
+  } catch { $('wxResults').innerHTML = `<li class="muted-val">${t('Wetter nicht erreichbar.')}</li>`; }
+});
+$('wxGeo').addEventListener('click', () => {
+  if (!navigator.geolocation) { alert(t('Standort nicht verfügbar.')); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => setWxLoc({ name: t('Mein Standort'), lat: +pos.coords.latitude.toFixed(3), lon: +pos.coords.longitude.toFixed(3) }),
+    () => alert(t('Standort nicht verfügbar.')), { timeout: 10000 });
+});
 
 function renderAll() { renderMode(); document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
@@ -740,6 +908,7 @@ function armAlarm() {
   if (!steps.length && settings.mode === 'leave') { alert(t('Bitte zuerst mindestens einen Schritt in der Routine anlegen.')); return; }
   startKeepAlive();
   if ('speechSynthesis' in window) speechSynthesis.speak(new SpeechSynthesisUtterance('')); // Sprache freischalten (iOS)
+  refreshWeather();
   const target = nextOccurrence(((wakeMin() % 1440) + 1440) % 1440);
   alarm.armed = true;
   alarm.target = target.getTime();
@@ -765,7 +934,8 @@ function ring() {
   $('snoozeBtn').classList.toggle('hidden', !settings.snooze || settings.lockedIn);
   $('stopAlarm').classList.toggle('hidden', settings.lockedIn);
   $('pushBox').classList.toggle('hidden', !settings.lockedIn);
-  if (settings.lockedIn) startLockedIn();
+  if (settings.lockedIn) { if (dayStatus() !== 'done') markDay('pending'); startLockedIn(); }
+  refreshWeather();
   $('snoozeBtn').textContent = `+${settings.snooze} min`;
   playMelody(settings.sound, settings.fadeSec);
   if (navigator.vibrate) navigator.vibrate([400, 200, 400]);
@@ -780,7 +950,7 @@ function wakeDone(delay = 0) {
 $('stopAlarm').addEventListener('click', () => wakeDone());
 
 /* ---------- Locked in: Liegestütze statt Aus-Knopf ---------- */
-const PUSHUPS = 15;
+const BASE_PUSHUPS = 15;
 // Eigene Sprüche im harten Drill-Stil (keine Original-Zitate)
 const LOCK_LINES = {
   de: [
@@ -788,7 +958,7 @@ const LOCK_LINES = {
     'Dein Bett ist kein Versteck. Raus da!',
     'Du hast gesagt, du willst es. Dann beweis es, verdammt nochmal!',
     'Bequemlichkeit macht dich weich. Runter auf den Boden!',
-    'Scheiss auf Ausreden. Fünfzehn Liegestütze. Jetzt!',
+    'Scheiss auf Ausreden. Runter auf den Boden, jetzt!',
     'Während du pennst, wird jemand anderes besser. Beweg deinen Arsch!',
     'Dein Kopf will aufgeben. Dein Kopf hat hier nichts zu melden.',
     'Hör auf zu jammern und fang an zu leiden. Los!',
@@ -799,7 +969,7 @@ const LOCK_LINES = {
     'Your bed is not a hiding place. Get out!',
     'You said you wanted this. Now prove it, damn it!',
     'Comfort makes you soft. Hit the floor!',
-    'Screw your excuses. Fifteen push-ups. Now!',
+    'Screw your excuses. Hit the floor, now!',
     'While you sleep, someone else gets better. Move your ass!',
     'Your mind wants to quit. Your mind does not get a vote.',
     'Stop whining and start suffering. Go!',
@@ -807,8 +977,8 @@ const LOCK_LINES = {
   ]
 };
 const LOCK_REP = {
-  de: { 5: 'Das ist erst der Anfang!', 10: 'Nicht aufhören, verdammt! Noch fünf!', 14: 'Einer noch! Gib alles!' },
-  en: { 5: 'That is just the warm-up!', 10: "Don't you dare stop! Five more!", 14: 'One more! Everything you got!' }
+  de: { start: 'Das ist erst der Anfang!', five: 'Nicht aufhören, verdammt! Noch fünf!', one: 'Einer noch! Gib alles!' },
+  en: { start: 'That is just the warm-up!', five: "Don't you dare stop! Five more!", one: 'One more! Everything you got!' }
 };
 const LOCK_DONE = {
   de: n => `Das war's. ${n ? n + ', d' : 'D'}en Tag hast du dir verdient. Jetzt zieh durch.`,
@@ -827,8 +997,9 @@ function lockSay(text, ms) { duck(0.2, ms || 3500); speak(text, 0); }
 function startLockedIn() {
   lock = { count: 0, last: 0, lastRep: 0, i: Math.floor(Math.random() * 9) };
   $('pushCount').textContent = '0';
-  $('pushOf').textContent = '/ ' + PUSHUPS;
-  setTimeout(() => lockSay(LOCK_LINES[LANG][lock.i++ % 9]), 6000);
+  lock.target = pushTarget();
+  $('pushOf').textContent = '/ ' + lock.target;
+  setTimeout(() => { if (lock) lockSay(LOCK_LINES[LANG][lock.i++ % 9]); }, 6000);
   lock.talk = setInterval(() => {
     // Nur anschreien, wenn gerade keine Liegestütze kommen
     if (Date.now() - lock.lastRep > 7000) lockSay(LOCK_LINES[LANG][lock.i++ % 9]);
@@ -849,22 +1020,28 @@ $('pushPad').addEventListener('pointerdown', e => {
   $('pushCount').textContent = lock.count;
   $('pushPad').classList.remove('hit'); void $('pushPad').offsetWidth; $('pushPad').classList.add('hit');
   if (navigator.vibrate) navigator.vibrate(40);
-  if (lock.count >= PUSHUPS) {
+  if (lock.count >= lock.target) {
     const name = settings.name;
     stopLockedIn();
     stopMelody();
-    speak(LOCK_DONE[LANG](name), 0);
+    const before = pushTarget();
+    markDay('done');
+    const st = streakCount(), after = pushTarget();
+    let msg = LOCK_DONE[LANG](name) + ' ' + t('Tag {n} in Folge.', { n: st });
+    if (after > before) msg += ' ' + t('Ab morgen {n} Liegestütze.', { n: after });
+    speak(msg, 0);
     wakeDone(5000);   // Routine erst nach dem Abschluss-Spruch starten
     return;
   }
-  const extra = LOCK_REP[LANG][lock.count];
+  const L = LOCK_REP[LANG], left = lock.target - lock.count;
+  const extra = lock.count === 5 ? L.start : left === 5 ? L.five : left === 1 ? L.one : '';
   lockSay(extra ? `${lock.count}! ${extra}` : String(lock.count), extra ? 3000 : 1200);
 });
 // Notfall-Aus: 5 Sekunden gedrückt halten
 let emergencyTimer = null;
 $('pushEmergency').addEventListener('pointerdown', () => {
   $('pushEmergency').textContent = t('Halten …');
-  emergencyTimer = setTimeout(() => { stopLockedIn(); wakeDone(); }, 5000);
+  emergencyTimer = setTimeout(() => { markDay('fail'); stopLockedIn(); wakeDone(); }, 5000);
 });
 ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => $('pushEmergency').addEventListener(ev, () => {
   clearTimeout(emergencyTimer);
@@ -922,7 +1099,7 @@ function goToStep(i, now, announce = true) {
   if (announce) {
     const prev = run.steps[i - 1];
     const intro = prev ? t('{name} ist vorbei. ', { name: prev.name })
-      : settings.name ? t('Guten Morgen, {name}! ', { name: settings.name }) : '';
+      : (settings.name ? t('Guten Morgen, {name}! ', { name: settings.name }) : '') + weatherSpeech();
     say(intro + t('Jetzt: {name}, {dur}.', { name: s.name, dur: spokenDuration(s.min * 60) }));
   }
   renderRun(now);
@@ -1023,6 +1200,7 @@ function tick() {
   $('ringClock').textContent = fmtClock(d);
   tickAlarm(now);
   tickRun(now);
+  tickBedtime(now);
 }
 setInterval(tick, 250);
 
@@ -1066,6 +1244,7 @@ if (!settings.name) $('onboard').classList.remove('hidden');
 applyPalette();
 renderAll();
 translateStatic();
+refreshWeather();
 loadClips();
 if ('speechSynthesis' in window) pickVoice();
 tick();
