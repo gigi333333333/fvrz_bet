@@ -530,7 +530,7 @@ $('voiceSel').addEventListener('change', e => {
   sampleVoice();
 });
 
-function renderAll() { renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+function renderAll() { document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {

@@ -260,3 +260,4 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
 .next.soon { color: var(--primary); font-weight: 600; }
 .warn { background: color-mix(in srgb, var(--late) 15%, transparent); color: var(--text); border-radius: 18px; padding: 10px 14px; font-size: .85rem; margin: -6px 0 14px; }
 .clip.err .sub { color: var(--late); }
+body.speech-off .speech-opt { display: none !important; }

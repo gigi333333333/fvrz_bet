@@ -87,18 +87,20 @@
       <h2 class="group-title">Durchsagen</h2>
       <ul class="group">
         <li class="row"><span>Durchsagen</span><label class="switch"><input type="checkbox" id="speechOn"><i></i></label></li>
-        <li class="row"><span>Stimme</span><select id="voiceSel" class="pick" aria-label="Stimme"></select></li>
-        <li class="row col"><span>Tempo</span>
+        <li class="row speech-opt"><span>Stimme</span><select id="voiceSel" class="pick" aria-label="Stimme"></select></li>
+        <li class="row col speech-opt"><span>Tempo</span>
           <div class="seg" data-key="rate" data-num>
             <button data-v="0.85">Ruhig</button><button data-v="1">Normal</button><button data-v="1.15">Zügig</button>
           </div>
         </li>
-        <li class="row tap" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
+        <li class="row tap speech-opt" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
       </ul>
 
+      <div class="speech-opt">
       <h2 class="group-title">Eigene Stimme</h2>
       <ul class="group" id="clips"></ul>
       <p class="footnote" id="clipHint"></p>
+      </div>
 
       <button id="startNow" class="btn primary block">Jetzt starten</button>
     </section>
