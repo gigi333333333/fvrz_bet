@@ -493,7 +493,7 @@ function renderPresets() {
   const custom = settings.preset === 'custom';
   $('customBox').classList.toggle('hidden', !custom);
   $('presetSum').textContent = custom ? '' :
-    `${SOUND_NAMES[settings.sound][0]} · ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
+    `${SOUND_NAMES[settings.sound][0]} · Ton Beginn ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
 }
 $('presets').addEventListener('click', e => {
   const b = e.target.closest('.preset'); if (!b) return;
