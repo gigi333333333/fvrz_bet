@@ -28,10 +28,11 @@
         <p class="hero-label"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2M5 4.5 3 6.5M19 4.5l2 2"/></svg><span>Aufstehen</span></p>
         <div class="hero-time" id="sumWake">--:--</div>
         <input type="time" id="wakeTime" class="hero-time-input hidden" aria-label="Aufstehen">
-        <div class="hero-input">
-          <span class="hero-row-label"><svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg><span>Aus dem Haus</span></span>
-          <input type="time" id="leaveTime" aria-label="Aus dem Haus">
-          <strong id="sumLeave" class="leave-static hidden">--:--</strong>
+        <div class="leave-bar" id="leaveBar">
+          <span class="leave-label"><svg class="ico" viewBox="0 0 24 24"><path d="M6 21V4h12v17M3 21h18M14.5 12.5v.01"/></svg><span>Aus dem Haus</span></span>
+          <span class="leave-right"><strong id="sumLeave" class="leave-time">--:--</strong><svg class="edit-ico" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4"/></svg></span>
+          <!-- unsichtbares Zeitfeld über dem ganzen Balken: Tippen irgendwo öffnet die Zeitauswahl -->
+          <input type="time" id="leaveTime" class="cover-input" aria-label="Aus dem Haus ändern">
         </div>
         <div class="timeline" id="timeline" aria-hidden="true"></div>
         <p class="hero-meta"><span id="sumTotal">0 Min</span> Routine</p>
@@ -87,18 +88,20 @@
       <h2 class="group-title">Durchsagen</h2>
       <ul class="group">
         <li class="row"><span>Durchsagen</span><label class="switch"><input type="checkbox" id="speechOn"><i></i></label></li>
-        <li class="row"><span>Stimme</span><select id="voiceSel" class="pick" aria-label="Stimme"></select></li>
-        <li class="row col"><span>Tempo</span>
+        <li class="row speech-opt"><span>Stimme</span><select id="voiceSel" class="pick" aria-label="Stimme"></select></li>
+        <li class="row col speech-opt"><span>Tempo</span>
           <div class="seg" data-key="rate" data-num>
             <button data-v="0.85">Ruhig</button><button data-v="1">Normal</button><button data-v="1.15">Zügig</button>
           </div>
         </li>
-        <li class="row tap" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
+        <li class="row tap speech-opt" id="testSpeech"><span>Testen</span><span class="play"><svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg></span></li>
       </ul>
 
+      <div class="speech-opt">
       <h2 class="group-title">Eigene Stimme</h2>
       <ul class="group" id="clips"></ul>
       <p class="footnote" id="clipHint"></p>
+      </div>
 
       <button id="startNow" class="btn primary block">Jetzt starten</button>
     </section>

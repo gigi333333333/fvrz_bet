@@ -465,7 +465,7 @@ function renderSummary() {
   $('sumWake').classList.toggle('hidden', !leaveFix);
   $('wakeTime').classList.toggle('hidden', leaveFix);
   $('leaveTime').classList.toggle('hidden', !leaveFix);
-  $('sumLeave').classList.toggle('hidden', leaveFix);
+  $('leaveBar').classList.toggle('locked', !leaveFix);
   $('sumWake').textContent = fromMin(wakeMin());
   $('sumLeave').textContent = fromMin(leaveMin());
   $('sumTotal').textContent = totalMin() + ' Min';
@@ -493,7 +493,7 @@ function renderPresets() {
   const custom = settings.preset === 'custom';
   $('customBox').classList.toggle('hidden', !custom);
   $('presetSum').textContent = custom ? '' :
-    `${SOUND_NAMES[settings.sound][0]} · ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
+    `${SOUND_NAMES[settings.sound][0]} · Ton Beginn ${FADE_TXT[settings.fadeSec] || settings.fadeSec + ' s'} · Licht ${settings.dawnMin ? settings.dawnMin + ' min' : 'aus'} · ${settings.snooze ? 'Schlummern ' + settings.snooze + ' min' : 'kein Schlummern'}`;
 }
 $('presets').addEventListener('click', e => {
   const b = e.target.closest('.preset'); if (!b) return;
@@ -530,7 +530,11 @@ $('voiceSel').addEventListener('change', e => {
   sampleVoice();
 });
 
-function renderAll() { renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+// Am Computer öffnet ein Klick auf das Zeitfeld sonst nicht die Auswahl
+$('leaveTime').addEventListener('click', e => { try { e.currentTarget.showPicker(); } catch { /* Handy öffnet selbst */ } });
+$('leaveTime').addEventListener('input', e => { if (e.target.value) $('sumLeave').textContent = e.target.value; });
+
+function renderAll() { document.body.classList.toggle('speech-off', !settings.speechOn); renderSections(); renderPresets(); renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
 
 // Tabs
 document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {

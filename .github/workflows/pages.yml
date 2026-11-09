@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # neuer Lauf wartet, statt den laufenden abzubrechen
 
 jobs:
   deploy:
