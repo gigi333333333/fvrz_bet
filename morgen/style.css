@@ -239,3 +239,5 @@ details p { margin: 0 0 14px; color: var(--muted); font-size: .92rem; }
 .steps li.marker { cursor: default; color: var(--muted); font-weight: 600; font-size: .92rem; min-height: 46px; }
 .steps li.marker .t { color: var(--primary); font-weight: 600; }
 .steps { overflow: visible; }
+.hint { margin: -2px 2px 8px; color: var(--muted); font-size: .8rem; line-height: 1.35; opacity: .85; }
+.group .label { color: var(--text); font-weight: 600; }
