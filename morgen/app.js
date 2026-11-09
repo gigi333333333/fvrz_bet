@@ -22,7 +22,7 @@ const DEFAULT_STEPS = [
 const DEFAULT_SETTINGS = {
   mode: 'leave', leaveTime: '07:15', wakeTime: '06:30',
   sound: 'sunrise', fadeSec: 60, dawnMin: 10, snooze: 0,
-  autoRoutine: true, speechOn: true
+  autoRoutine: true, speechOn: true, palette: 'morgenroete'
 };
 
 let steps = store.get('steps', DEFAULT_STEPS);
@@ -195,26 +195,70 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && (alarm.armed || run)) lockScreen();
 });
 
-/* ---------- UI: Einstellungen ---------- */
-function saveSettings() { store.set('settings', settings); renderSummary(); }
+/* ---------- UI: Paletten ---------- */
+const PALETTES = [
+  { id: 'morgenroete', name: 'Morgenröte', sub: 'Warm, wie ein Sonnenaufgang', theme: '#14151F', c: ['#FF8A5B', '#2B2E45', '#FFD166'] },
+  { id: 'nachtblau', name: 'Nachtblau', sub: 'Ruhig, wie Schlaf-Apps', theme: '#0B0E22', c: ['#7C8CFF', '#1C2247', '#6EE7C8'] },
+  { id: 'salbei', name: 'Salbei', sub: 'Hell und minimal, wie Planer-Apps', theme: '#F6F5F1', c: ['#2F6B57', '#E3ECE6', '#E8894A'] },
+  { id: 'mono', name: 'Mono', sub: 'Schwarz-weiss, ein Akzent', theme: '#000000', c: ['#FFFFFF', '#1C1C1E', '#FF9F0A'] }
+];
+function applyPalette() {
+  const p = PALETTES.find(x => x.id === settings.palette) || PALETTES[0];
+  document.documentElement.dataset.palette = p.id;
+  document.querySelector('meta[name=theme-color]').content = p.theme;
+  $('palettes').innerHTML = PALETTES.map(x => `
+    <li class="row tap ${x.id === p.id ? 'on' : ''}" data-id="${x.id}">
+      <span class="radio"></span>
+      <span class="grow">${x.name}<span class="sub">${x.sub}</span></span>
+      <span class="swatches">${x.c.map(c => `<b style="background:${c}" title="${c}"></b>`).join('')}</span>
+    </li>`).join('');
+}
+$('palettes').addEventListener('click', e => {
+  const li = e.target.closest('li'); if (!li) return;
+  settings.palette = li.dataset.id; store.set('settings', settings); applyPalette();
+});
 
-function bindSetting(id, key, parse = v => v) {
-  const el = $(id);
-  if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
-  el.addEventListener('change', () => {
-    settings[key] = el.type === 'checkbox' ? el.checked : parse(el.value);
+/* ---------- UI: Einstellungen ---------- */
+function saveSettings() { store.set('settings', settings); renderAll(); }
+
+// Segment-Buttons
+document.querySelectorAll('.seg[data-key]').forEach(seg => {
+  const key = seg.dataset.key, num = seg.hasAttribute('data-num');
+  seg.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    settings[key] = num ? Number(b.dataset.v) : b.dataset.v;
     saveSettings();
   });
+});
+function renderSegs() {
+  document.querySelectorAll('.seg[data-key]').forEach(seg =>
+    seg.querySelectorAll('button').forEach(b => b.classList.toggle('on', String(settings[seg.dataset.key]) === b.dataset.v)));
 }
-bindSetting('mode', 'mode');
-bindSetting('leaveTime', 'leaveTime');
-bindSetting('wakeTime', 'wakeTime');
-bindSetting('sound', 'sound');
-bindSetting('fadeSec', 'fadeSec', Number);
-bindSetting('dawnMin', 'dawnMin', Number);
-bindSetting('snooze', 'snooze', Number);
-bindSetting('autoRoutine', 'autoRoutine');
-bindSetting('speechOn', 'speechOn');
+
+// Felder & Schalter
+[['leaveTime', 'leaveTime'], ['wakeTime', 'wakeTime'], ['autoRoutine', 'autoRoutine'], ['speechOn', 'speechOn']].forEach(([id, key]) => {
+  const el = $(id);
+  if (el.type === 'checkbox') el.checked = settings[key]; else el.value = settings[key];
+  el.addEventListener('change', () => { settings[key] = el.type === 'checkbox' ? el.checked : el.value; saveSettings(); });
+});
+
+// Wecktöne
+const SOUND_NAMES = { sunrise: ['Sonnenaufgang', 'Marimba, aufsteigend'], birds: ['Morgenglocken', 'Hell und ruhig'], pulse: ['Sanfter Puls', 'Rhythmisch, weich'] };
+const PLAY_ICON = '<svg viewBox="0 0 10 10"><path d="M2 1l7 4-7 4z"/></svg>';
+function renderSounds() {
+  $('soundList').innerHTML = Object.entries(SOUND_NAMES).map(([id, [n, sub]]) => `
+    <li class="row tap ${settings.sound === id ? 'on' : ''}" data-id="${id}">
+      <span class="radio"></span>
+      <span class="grow">${n}<span class="sub">${sub}</span></span>
+      <button class="play" data-play="${id}" aria-label="${n} anhören">${PLAY_ICON}</button>
+    </li>`).join('');
+}
+$('soundList').addEventListener('click', e => {
+  const play = e.target.closest('[data-play]');
+  if (play) { playMelody(play.dataset.play, 1.5, 5); return; }
+  const li = e.target.closest('li'); if (!li) return;
+  settings.sound = li.dataset.id; saveSettings();
+});
 
 function renderSummary() {
   $('leaveRow').classList.toggle('hidden', settings.mode !== 'leave');
@@ -222,57 +266,74 @@ function renderSummary() {
   $('sumWake').textContent = fromMin(wakeMin());
   $('sumLeave').textContent = fromMin(leaveMin());
   $('sumTotal').textContent = totalMin() + ' Min';
+  $('timeline').innerHTML = steps.map(s => `<i style="flex:${s.min}"></i>`).join('');
   const w = wakeMin();
-  $('bedtimes').innerHTML = [6, 5, 4].map(c =>
-    `<span class="chip"><b>${fromMin(w - c * 90 - 15)}</b> · ${c} Zyklen (${(c * 1.5).toString().replace('.', ',')} h)</span>`
-  ).join('');
+  $('bedtimes').innerHTML = [6, 5, 4].map((c, i) => `
+    <li class="row"><span>${c} Zyklen<span class="sub">${(c * 1.5).toString().replace('.', ',')} Stunden Schlaf${i === 0 ? ' · ideal für Jugendliche' : ''}</span></span>
+    <span class="time-big ${i < 2 ? 'rec' : ''}">${fromMin(w - c * 90 - 15)}</span></li>`).join('');
+  const d = new Date();
+  $('today').textContent = d.toLocaleDateString('de-CH', { weekday: 'long', day: 'numeric', month: 'long' });
+  $('routineMeta').textContent = `${steps.length} Schritte · ${totalMin()} Minuten`;
 }
 
-document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
-  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+function renderAll() { renderSegs(); renderSounds(); renderSummary(); renderSteps(); }
+
+// Tabs
+document.querySelectorAll('.tabbar button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabbar button').forEach(x => x.classList.toggle('active', x === b));
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  window.scrollTo(0, 0);
 }));
 
-$('preview').addEventListener('click', () => playMelody(settings.sound, 2, 5));
 $('testSpeech').addEventListener('click', () => {
   const s = steps[1] || steps[0];
   say(s ? `Halbzeit: ${s.name}. Noch ${spokenDuration(s.min * 30)}.` : 'Test');
 });
 
 /* ---------- UI: Routine bearbeiten ---------- */
-function saveSteps() { store.set('steps', steps); renderSteps(); renderSummary(); }
+function saveSteps() { store.set('steps', steps); renderSummary(); renderSteps(); }
 
 function renderSteps() {
-  const list = $('steps');
-  list.innerHTML = '';
-  let t = settings.mode === 'leave' ? wakeMin() : toMin(settings.wakeTime);
-  steps.forEach((s, i) => {
-    const li = document.createElement('li');
-    li.innerHTML = `
-      <span class="t">${fromMin(t)}</span>
-      <span class="name"><input value="" maxlength="40" aria-label="Name"></span>
-      <input class="min" type="number" min="1" max="120" aria-label="Minuten">
-      <button class="icon" data-a="up" aria-label="nach oben">↑</button>
-      <button class="icon" data-a="del" aria-label="löschen">✕</button>`;
-    const [nameIn, minIn] = li.querySelectorAll('input');
-    nameIn.value = s.name; minIn.value = s.min;
-    nameIn.addEventListener('change', () => { s.name = nameIn.value.trim() || s.name; saveSteps(); });
-    minIn.addEventListener('change', () => { s.min = Math.min(120, Math.max(1, Math.round(+minIn.value) || 1)); saveSteps(); });
-    li.querySelector('[data-a=up]').addEventListener('click', () => { if (i > 0) { [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]]; saveSteps(); } });
-    li.querySelector('[data-a=del]').addEventListener('click', () => { steps.splice(i, 1); saveSteps(); });
-    list.appendChild(li);
-    t += s.min;
-  });
+  let t = wakeMin();
+  $('steps').innerHTML = steps.map((s, i) => {
+    const row = `<li class="row" data-i="${i}">
+      <span class="t">${fromMin(t)}</span><span class="dot"></span>
+      <span class="grow"></span><span class="pill">${s.min} Min</span><span class="chev">›</span></li>`;
+    t += s.min; return row;
+  }).join('');
+  // Namen sicher als Text einsetzen
+  $('steps').querySelectorAll('li').forEach((li, i) => { li.querySelector('.grow').textContent = steps[i].name; });
 }
-$('addForm').addEventListener('submit', e => {
-  e.preventDefault();
-  steps.push({ name: $('newName').value.trim(), min: Math.min(120, Math.max(1, +$('newMin').value || 5)) });
-  $('newName').value = '';
+
+// Bottom-Sheet
+const sheet = $('sheet');
+let editIdx = -1, sheetMin = 5;
+function openSheet(i) {
+  editIdx = i;
+  const s = steps[i] || { name: '', min: 5 };
+  $('sheetTitle').textContent = i < 0 ? 'Neuer Schritt' : 'Schritt bearbeiten';
+  $('sheetName').value = s.name;
+  sheetMin = s.min; $('sheetMin').textContent = sheetMin;
+  $('sheetDel').classList.toggle('hidden', i < 0);
+  $('sheetUp').classList.toggle('hidden', i < 1);
+  sheet.showModal();
+}
+$('steps').addEventListener('click', e => { const li = e.target.closest('li'); if (li) openSheet(+li.dataset.i); });
+$('addStep').addEventListener('click', () => openSheet(-1));
+sheet.querySelectorAll('.stepper button').forEach(b => b.addEventListener('click', () => {
+  sheetMin = Math.min(120, Math.max(1, sheetMin + Number(b.dataset.d)));
+  $('sheetMin').textContent = sheetMin;
+}));
+$('sheetForm').addEventListener('submit', () => {
+  const name = $('sheetName').value.trim(); if (!name) return;
+  if (editIdx < 0) steps.push({ name, min: sheetMin }); else Object.assign(steps[editIdx], { name, min: sheetMin });
   saveSteps();
 });
-$('mode').addEventListener('change', renderSteps);
-$('leaveTime').addEventListener('change', renderSteps);
-$('wakeTime').addEventListener('change', renderSteps);
+$('sheetDel').addEventListener('click', () => { steps.splice(editIdx, 1); sheet.close(); saveSteps(); });
+$('sheetUp').addEventListener('click', () => {
+  const i = editIdx; [steps[i - 1], steps[i]] = [steps[i], steps[i - 1]]; sheet.close(); saveSteps();
+});
+sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); }); // Tippen auf Hintergrund schliesst
 
 /* ---------- Wecker ---------- */
 const alarm = { armed: false, target: null, ringing: false, plannedLeave: null };
@@ -458,7 +519,6 @@ $('runStop').addEventListener('click', () => {
 /* ---------- Haupttakt ---------- */
 function tick() {
   const now = Date.now(), d = new Date(now);
-  $('clock').textContent = fmtClock(d);
   $('armedClock').textContent = fmtClock(d);
   $('ringClock').textContent = fmtClock(d);
   tickAlarm(now);
@@ -466,8 +526,8 @@ function tick() {
 }
 setInterval(tick, 250);
 
-renderSummary();
-renderSteps();
+applyPalette();
+renderAll();
 tick();
 
 if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
